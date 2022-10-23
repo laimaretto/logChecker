@@ -1,3 +1,8 @@
+[3.5.0 - 2022-10-23]
+- First version on `PyPI`.
+- Renamed to `logChecker`.
+
+
 [3.4.0 - 2022-09-27]
 - Control keywords for the templates to control the resulting columns in each report.
 - CLI paramter to control wether we want to use the name of the router, its IP adress, or both.

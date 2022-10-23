@@ -1,12 +1,12 @@
 # Copyright (C) 2022 Lucas Aimaretto / laimaretto@gmail.com
 # Copyright (C) 2020 Manuel Saldivar / manuelsaldivar@outlook.com.ar, Lucas Aimaretto / laimaretto@gmail.com
 #
-# This is logAnalyzer
+# This is logCheck
 #
-# logAnalyzer is free software: you can redistribute it and/or modify
+# logCheck is free software: you can redistribute it and/or modify
 # it under the terms of the 3-clause BSD License.
 #
-# logAnalyzer is distributed in the hope that it will be useful,
+# logCheck is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY of any kind whatsoever.
 #
 
@@ -562,7 +562,7 @@ def main():
 	parser1.add_argument('-tf-post', '--templateFolderPost', type=str, default='Templates/', help='If set, use this folder of templates for POST logs. Default=Templates/')
 	parser1.add_argument('-te', '--templateEngine', choices=['ttp','textFSM'], default='textFSM', type=str, help='Engine for parsing. Default=textFSM.')
 	parser1.add_argument('-ri', '--routerId', choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Saldivar/Aimaretto - (c)2022 - Version: 3.4.0' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Aimaretto - (c)2022 - Version: 3.5.0' )
 
 	args               = parser1.parse_args()
 	preFolder          = args.preFolder
