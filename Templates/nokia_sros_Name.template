@@ -1,8 +1,0 @@
-#Command: /
-#Description: This template is an example to find out the router name
-#Variables: Router_Name 
-#Autor: Manuel Saldivar manuelsaldivar@outlook.com.ar
-
-Start
-  ^\w:\S+(#|>) echo SCRIPT_NONO_START
-  ^.\w:\S+(#|>) echo SCRIPT_NONO_START

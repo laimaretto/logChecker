@@ -562,7 +562,7 @@ def main():
 	parser1.add_argument('-tf-post', '--templateFolderPost', type=str, default='Templates/', help='If set, use this folder of templates for POST logs. Default=Templates/')
 	parser1.add_argument('-te', '--templateEngine', choices=['ttp','textFSM'], default='textFSM', type=str, help='Engine for parsing. Default=textFSM.')
 	parser1.add_argument('-ri', '--routerId', choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Aimaretto - (c)2022 - Version: 3.5.0' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Aimaretto - (c)2022 - Version: 3.5.1' )
 
 	args               = parser1.parse_args()
 	preFolder          = args.preFolder

@@ -1,3 +1,6 @@
+[3.5.1 - 2022-10-23]
+- Reoder of files
+
 [3.5.0 - 2022-10-23]
 - First version on `PyPI`.
 - Renamed to `logChecker`.
