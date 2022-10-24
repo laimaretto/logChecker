@@ -21,13 +21,9 @@ The program needs two mandatory inputs:
 
 The templates are stored by default under the `Templates/` folder. logChecker reads either the CSV or the template folder to perform the function of parsing.
 
-To find out a set of Templates to be used, see [`here`](https://github.com/laimaretto/logTemplates)
+To find out a set of Templates that can be used, see [`here`](https://github.com/laimaretto/logTemplates)
 
-Inside each template file, one can include control variables. Also, some mandatory comments are needed.
-
-### CSV
-
-It is possible to use a CSV file, that includes the specific templates to be used in the analysys.
+It is possible to use a separate file to specify which templates to use, such as.
 
 ```csv
 show_router_bgp_summary.template
