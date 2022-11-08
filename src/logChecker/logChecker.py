@@ -21,6 +21,7 @@ from sys import platform as _platform
 import json
 import re
 from ttp import ttp
+import copy
 
 DATA_VALUE     = 'Value'
 DATA_COMMAND   = '#Command:'
@@ -559,10 +560,10 @@ def main():
 	parser1.add_argument('-csv', '--csvTemplate',   type=str, default='', help='CSV with list of templates names to be used in parsing. If the file is omitted, then all the templates inside --templateFolder, will be considered for parsing. Default=None.')
 	parser1.add_argument('-json', '--formatJson',   type=str, default = 'yes', choices=['yes','no'], help='logs in json format: yes or no. Default=yes.')
 	parser1.add_argument('-tf', '--templateFolder', type=str, default='Templates/', help='Folder where templates reside. Used both for PRE and POST logs. Default=Templates/')
-	parser1.add_argument('-tf-post', '--templateFolderPost', type=str, default='Templates/', help='If set, use this folder of templates for POST logs. Default=Templates/')
+	parser1.add_argument('-tf-post', '--templateFolderPost', type=str, default='', help='If set, use this folder of templates for POST logs.')
 	parser1.add_argument('-te', '--templateEngine', choices=['ttp','textFSM'], default='textFSM', type=str, help='Engine for parsing. Default=textFSM.')
 	parser1.add_argument('-ri', '--routerId', choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Aimaretto - (c)2022 - Version: 3.5.1' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Aimaretto - (c)2022 - Version: 3.5.2' )
 
 	args               = parser1.parse_args()
 	preFolder          = args.preFolder
@@ -597,6 +598,9 @@ def main():
 	elif preFolder != '' and postFolder != '':
 
 		if templateFolder == templateFolderPost:
+			dTmpltPre = dTmpltPost = readTemplate(csvTemplate, templateFolder, templateEngine)
+		elif templateFolder != '' and templateFolderPost == '':
+			templateFolderPost = templateFolder
 			dTmpltPre = dTmpltPost = readTemplate(csvTemplate, templateFolder, templateEngine)
 		else:
 			dTmpltPre  = readTemplate(csvTemplate, templateFolder, templateEngine)
