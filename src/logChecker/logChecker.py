@@ -12,16 +12,13 @@
 
 import textfsm
 import pandas as pd
-import csv
-import xlsxwriter
 import glob
 import argparse
-import yaml
 from sys import platform as _platform
 import json
 import re
 from ttp import ttp
-import copy
+import os
 
 DATA_VALUE     = 'Value'
 DATA_COMMAND   = '#Command:'
@@ -46,7 +43,15 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 		with open(fileTemplate,'r') as f:
 			templates = [x.replace('\n','') for x in f.readlines()]
 	else:
-		templates = [f.replace(templateFolder,'') for f in glob.glob(templateFolder + '*') if 'majorFile.yml' not in f]
+		if os.path.exists(templateFolder):
+			templates = [f.replace(templateFolder,'') for f in glob.glob(templateFolder + '*') if 'majorFile.yml' not in f]
+		else:
+			print(f'The folder {templateFolder} does not exists. Please check the folder name. Quitting...')
+			quit()
+	
+	if len(templates) == 0:
+		print(f"No templates have been gathered from folder {templateFolder}. Check folder name. Quitting...")
+		quit()
 
 	d = {}
 
@@ -563,7 +568,7 @@ def main():
 	parser1.add_argument('-tf-post', '--templateFolderPost', type=str, default='', help='If set, use this folder of templates for POST logs.')
 	parser1.add_argument('-te', '--templateEngine', choices=['ttp','textFSM'], default='textFSM', type=str, help='Engine for parsing. Default=textFSM.')
 	parser1.add_argument('-ri', '--routerId', choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Aimaretto - (c)2022 - Version: 3.5.2' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Lucas Aimaretto - (c)2022 - Version: 3.5.6' )
 
 	args               = parser1.parse_args()
 	preFolder          = args.preFolder
@@ -598,10 +603,12 @@ def main():
 	elif preFolder != '' and postFolder != '':
 
 		if templateFolder == templateFolderPost:
-			dTmpltPre = dTmpltPost = readTemplate(csvTemplate, templateFolder, templateEngine)
+			dTmpltPre  = readTemplate(csvTemplate, templateFolder, templateEngine)
+			dTmpltPost = readTemplate(csvTemplate, templateFolderPost, templateEngine)
 		elif templateFolder != '' and templateFolderPost == '':
 			templateFolderPost = templateFolder
-			dTmpltPre = dTmpltPost = readTemplate(csvTemplate, templateFolder, templateEngine)
+			dTmpltPre  = readTemplate(csvTemplate, templateFolder, templateEngine)
+			dTmpltPost = readTemplate(csvTemplate, templateFolderPost, templateEngine)
 		else:
 			dTmpltPre  = readTemplate(csvTemplate, templateFolder, templateEngine)
 			dTmpltPost = readTemplate(csvTemplate, templateFolderPost, templateEngine)

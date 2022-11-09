@@ -1,3 +1,9 @@
+[3.5.6 - 2022-11-09]
+- Better control on the folders for templates.
+
+[3.5.3 - 2022-11-09]
+- Better control on the folders for templates.
+
 [3.5.2 - 2022-11-08]
 - The parameters `-tf` and `-tf-post` can be set independently. If none are set, templates are looked for under `Templates/`. If not, logChecker will pay attention to either or both `-tf` and/or `-tf-post`.
 

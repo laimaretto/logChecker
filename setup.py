@@ -1,9 +1,8 @@
-from importlib.metadata import entry_points
 from setuptools import setup
 
 setup(
     name='logChecker',
-    version='3.5.2',  
+    version='3.5.6',  
     description='A simple log analysis tool',
     long_description='A parsing tool to easily perform pre and post check comparisons after a maintenance window.',
     long_description_content_type='text/x-rst',
