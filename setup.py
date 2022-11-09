@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='logChecker',
-    version='3.5.6',  
+    version='3.5.8',  
     description='A simple log analysis tool',
     long_description='A parsing tool to easily perform pre and post check comparisons after a maintenance window.',
     long_description_content_type='text/x-rst',
@@ -14,7 +14,7 @@ setup(
     install_requires=['textfsm==1.1.2',
                       'pandas==1.4.1',
                       'XlsxWriter==1.3.7',
-                      'ttp==0.9.0',                     
+                      'ttp==0.9.0',
                       ],
     python_requires='>=3.8',
     classifiers=[

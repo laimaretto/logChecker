@@ -1,3 +1,7 @@
+[3.5.8 - 2022-11-09]
+- The calling for function `main()` was commented out, so the program runs once when installed by `pip` and invoked from CLI.
+
+
 [3.5.6 - 2022-11-09]
 - Better control on the folders for templates.
 
