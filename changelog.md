@@ -1,3 +1,10 @@
+[3.5.9 - 2022-11-28]
+- Update of libraries
+    - `textfsm==1.1.2`
+    - `pandas==1.5.2`
+    - `XlsxWriter==3.0.3`
+    - `ttp==0.9.0`
+
 [3.5.8 - 2022-11-09]
 - The calling for function `main()` was commented out, so the program runs once when installed by `pip` and invoked from CLI.
 
