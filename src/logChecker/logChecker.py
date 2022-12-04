@@ -559,28 +559,16 @@ def constructExcel(df_final, count_dif, searchMajor, folderLog):#Sort the data a
 	
 	writer.save() #saves workbook to file in python file directory
 
-def main():
+def fncRun(dictParam):
 
-	parser1 = argparse.ArgumentParser(description='Log Analysis', prog='PROG', usage='%(prog)s [options]')
-	parser1.add_argument('-pre', '--preFolder',     type=str, required=True, help='Folder with PRE Logs. Must end in "/"',)
-	parser1.add_argument('-post','--postFolder' ,   type=str, default='',    help='Folder with POST Logs. Must end in "/"',)
-	parser1.add_argument('-csv', '--csvTemplate',   type=str, default='', help='CSV with list of templates names to be used in parsing. If the file is omitted, then all the templates inside --templateFolder, will be considered for parsing. Default=None.')
-	parser1.add_argument('-json', '--formatJson',   type=str, default = 'yes', choices=['yes','no'], help='logs in json format: yes or no. Default=yes.')
-	parser1.add_argument('-tf', '--templateFolder', type=str, default='Templates/', help='Folder where templates reside. Used both for PRE and POST logs. Default=Templates/')
-	parser1.add_argument('-tf-post', '--templateFolderPost', type=str, default='', help='If set, use this folder of templates for POST logs.')
-	parser1.add_argument('-te', '--templateEngine', choices=['ttp','textFSM'], default='textFSM', type=str, help='Engine for parsing. Default=textFSM.')
-	parser1.add_argument('-ri', '--routerId', choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Lucas Aimaretto - (c)2022 - Version: 3.5.9' )
-
-	args               = parser1.parse_args()
-	preFolder          = args.preFolder
-	postFolder         = args.postFolder
-	csvTemplate        = args.csvTemplate
-	formatJson         = args.formatJson
-	templateFolder     = args.templateFolder
-	templateEngine     = args.templateEngine
-	templateFolderPost = args.templateFolderPost
-	routerId           = args.routerId
+	preFolder          = dictParam['preFolder']
+	postFolder         = dictParam['postFolder']
+	csvTemplate        = dictParam['csvTemplate']
+	formatJson         = dictParam['formatJson']
+	templateFolder     = dictParam['templateFolder']
+	templateEngine     = dictParam['templateEngine']
+	templateFolderPost = dictParam['templateFolderPost']
+	routerId           = dictParam['routerId']
 
 	if _platform == "win64" or _platform == "win32":
 		templateFolder = templateFolder.replace('/', '\\')
@@ -650,4 +638,35 @@ def main():
 		print('No PRE folder defined. Please Verify.')
 
 
-#main()
+
+def main():
+
+	parser1 = argparse.ArgumentParser(description='Log Analysis', prog='PROG', usage='%(prog)s [options]')
+	parser1.add_argument('-pre', '--preFolder',     type=str, required=True, help='Folder with PRE Logs. Must end in "/"',)
+	parser1.add_argument('-post','--postFolder' ,   type=str, default='',    help='Folder with POST Logs. Must end in "/"',)
+	parser1.add_argument('-csv', '--csvTemplate',   type=str, default='', help='CSV with list of templates names to be used in parsing. If the file is omitted, then all the templates inside --templateFolder, will be considered for parsing. Default=None.')
+	parser1.add_argument('-json', '--formatJson',   type=str, default = 'yes', choices=['yes','no'], help='logs in json format: yes or no. Default=yes.')
+	parser1.add_argument('-tf', '--templateFolder', type=str, default='Templates/', help='Folder where templates reside. Used both for PRE and POST logs. Default=Templates/')
+	parser1.add_argument('-tf-post', '--templateFolderPost', type=str, default='', help='If set, use this folder of templates for POST logs.')
+	parser1.add_argument('-te', '--templateEngine', choices=['ttp','textFSM'], default='textFSM', type=str, help='Engine for parsing. Default=textFSM.')
+	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Lucas Aimaretto - (c)2022 - Version: 3.5.10' )
+
+	args               = parser1.parse_args()
+
+	dictParam = dict(
+		preFolder          = args.preFolder,
+		postFolder         = args.postFolder,
+		csvTemplate        = args.csvTemplate,
+		formatJson         = args.formatJson,
+		templateFolder     = args.templateFolder,
+		templateEngine     = args.templateEngine,
+		templateFolderPost = args.templateFolderPost,
+		routerId           = args.routerId,
+	)
+
+	fncRun(dictParam)
+
+### To be run from the python shell
+if __name__ == '__main__':
+	main()

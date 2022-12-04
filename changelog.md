@@ -1,3 +1,7 @@
+[3.5.10 - 2022-12-04]
+
+- New function `fncRun(dictParam)`. `dictParam` is a dictionary containing all the configuration parameters.
+
 [3.5.9 - 2022-11-28]
 - Update of libraries
     - `textfsm==1.1.2`
