@@ -1,3 +1,7 @@
+[3.6.1 - 2023-01-10]
+
+- New function `searchDiffOnly(datosEquipoPre, datosEquipoPost, dTmplt, routerId)`. This funcion, when invoked, will show only different fields when a comparison is made.
+
 [3.5.10 - 2022-12-04]
 
 - New function `fncRun(dictParam)`. `dictParam` is a dictionary containing all the configuration parameters.
