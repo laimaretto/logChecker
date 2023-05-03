@@ -1,3 +1,8 @@
+[3.7.1 - 2023-01-10]
+
+- New function `renderAtp(dictParam)`. This funcion, when invoked, will generate a Word docx document, with the information obtained from the `pre` and/or `post` folders.
+
+
 [3.6.1 - 2023-01-10]
 
 - New function `searchDiffOnly(datosEquipoPre, datosEquipoPost, dTmplt, routerId)`. This funcion, when invoked, will show only different fields when a comparison is made.

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-
-# Copyright (C) 2022 Lucas Aimaretto / laimaretto@gmail.com
+# 
+# Copyright (C) 2023 Lucas Aimaretto / laimaretto@gmail.com
 # Copyright (C) 2020 Manuel Saldivar / manuelsaldivar@outlook.com.ar, Lucas Aimaretto / laimaretto@gmail.com
-#
+# 
 # This is logCheck
-#
+# 
 # logCheck is free software: you can redistribute it and/or modify
 # it under the terms of the 3-clause BSD License.
-#
+# 
 # logCheck is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY of any kind whatsoever.
-#
+# 
 
 import textfsm
 import pandas as pd
@@ -21,6 +21,12 @@ import json
 import re
 from ttp import ttp
 import os
+
+import docx
+from docx.enum.style import WD_STYLE_TYPE 
+from docx.enum.text import WD_LINE_SPACING
+from docx.shared import Pt
+
 
 DATA_VALUE         = 'Value'
 DATA_COMMAND       = '#Command:'
@@ -283,7 +289,7 @@ def readLog(logFolder, formatJson):
 		formatJson (string): "yes" or "no"
 	"""
 
-	if formatJson == 'yes':
+	if formatJson is True:
 
 		ending = '*rx.json'
 
@@ -306,7 +312,7 @@ def readLog(logFolder, formatJson):
 
 	d = {}
 
-	if formatJson == 'yes':
+	if formatJson is True:
 
 		for name in listContent:
 			with open(name) as f:
@@ -662,6 +668,108 @@ def constructExcel(df_final, count_dif, searchMajor, folderLog):#Sort the data a
 	
 	writer.save() #saves workbook to file in python file directory
 
+def renderAtp(dictParam):
+	"""[Generates a ATP based on the json logs obtained from taskAutom.]
+
+	Args:
+		dictParam
+
+	Returns:
+		None
+	"""
+
+	preFolder  = dictParam['preFolder']
+	postFolder = dictParam['postFolder']
+
+	jsonFilesPre = [preFolder+x for x in os.listdir(preFolder) if '.json' in x and x != '00_report.json']
+	if postFolder != '':
+		jsonFilesPos = [postFolder+x for x in os.listdir(postFolder) if '.json' in x and x != '00_report.json']
+
+	job0docx = "./ATP.docx"
+
+	print("\nGenerating ATP: " + job0docx)
+
+	myDoc    = docx.Document()
+	myStyles = myDoc.styles  
+
+	styleConsole = myStyles.add_style('Console', WD_STYLE_TYPE.PARAGRAPH)
+	styleConsole.font.name = 'Courier'
+	styleConsole.font.size = Pt(9)
+	styleConsole.paragraph_format.keep_together = True
+
+	styleConsole.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+	#styleConsole.paragraph_format.line_spacing = Pt(10)
+	#styleConsole.paragraph_format.line_spacing = .2
+	styleConsole.paragraph_format.space_after = Pt(2)
+
+	myDoc.add_heading('ATP', 0)
+
+	charset_allowed = [chr(c) for c in range(32,127)] + ['\n']
+
+	if preFolder != '':
+
+		docMainTitle = myDoc.add_paragraph('Pre-Check')
+		docMainTitle.style = myDoc.styles['Heading 1']
+		docMainTitle.paragraph_format.line_spacing = 1.5	
+
+		for f in jsonFilesPre:
+			
+			with open(f) as myFile:
+				
+				logs  = json.load(myFile)
+				keys  = [x for x in logs.keys() if 'show' in x]
+
+				routerTitle = f'Router {logs["name"]} ({logs["ip"]})'
+
+				docRouterTitle = myDoc.add_paragraph(routerTitle)
+				docRouterTitle.style = myDoc.styles['Heading 2']
+				docRouterTitle.paragraph_format.line_spacing = 1.5
+
+				for key in keys:
+					showTitle   = key.rstrip('\n').lstrip('\n')
+					showContent = ''.join([x for x in logs[key] if x in charset_allowed]).rstrip('\n').lstrip('\n')
+
+					docShowTitle = myDoc.add_paragraph(showTitle)
+					docShowTitle.style = myDoc.styles['Heading 3']
+					docShowTitle.paragraph_format.line_spacing = 1.5
+
+					docShowContent = myDoc.add_paragraph(showContent)
+					docShowContent.style = myDoc.styles['Console']
+
+	if postFolder != '':
+
+		docMainTitle = myDoc.add_paragraph('Post-Check')
+		docMainTitle.style = myDoc.styles['Heading 1']
+		docMainTitle.paragraph_format.line_spacing = 1.5
+
+		for f in jsonFilesPos:
+			
+			with open(f) as myFile:
+				
+				logs  = json.load(myFile)
+				keys  = [x for x in logs.keys() if 'show' in x]
+
+				routerTitle = f'Router {logs["name"]} ({logs["ip"]})'
+
+				docRouterTitle = myDoc.add_paragraph(routerTitle)
+				docRouterTitle.style = myDoc.styles['Heading 2']
+				docRouterTitle.paragraph_format.line_spacing = 1.5
+
+				for key in keys:
+					showTitle   = key.rstrip('\n').lstrip('\n')
+					showContent = ''.join([x for x in logs[key] if x in charset_allowed]).rstrip('\n').lstrip('\n')
+
+					docShowTitle = myDoc.add_paragraph(showTitle)
+					docShowTitle.style = myDoc.styles['Heading 3']
+					docShowTitle.paragraph_format.line_spacing = 1.5
+
+					docShowContent = myDoc.add_paragraph(showContent)
+					docShowContent.style = myDoc.styles['Console']		
+
+	myDoc.save(job0docx)
+
+	print("ATP done...")
+
 def fncRun(dictParam):
 
 	preFolder          = dictParam['preFolder']
@@ -673,6 +781,7 @@ def fncRun(dictParam):
 	templateFolderPost = dictParam['templateFolderPost']
 	routerId           = dictParam['routerId']
 	showResults        = dictParam['showResults']
+	genAtp             = dictParam['genAtp']
 
 	if _platform == "win64" or _platform == "win32":
 		templateFolder = templateFolder.replace('/', '\\')
@@ -693,6 +802,9 @@ def fncRun(dictParam):
 			searchMajor[tmpltName] = pd.DataFrame(columns=df_final[tmpltName].columns)
 
 		constructExcel(df_final, count_dif, searchMajor, preFolder)
+
+		if genAtp is True:
+			renderAtp(dictParam)		
 
 	elif preFolder != '' and postFolder != '':
 
@@ -742,6 +854,9 @@ def fncRun(dictParam):
 
 		constructExcel(df_final, count_dif, searchMajor, postFolder)
 
+		if genAtp is True:
+			renderAtp(dictParam)		
+
 	elif preFolder == '':
 		print('No PRE folder defined. Please Verify.')
 
@@ -759,7 +874,8 @@ def main():
 	parser1.add_argument('-te', '--templateEngine', choices=['ttp','textFSM'], default='textFSM', type=str, help='Engine for parsing. Default=textFSM.')
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all','diff'], default='all', type=str, help='When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all)')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Lucas Aimaretto - (c)2023 - Version: 3.6.1' )
+	parser1.add_argument('-ga', '--genAtp',        type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Lucas Aimaretto - (c)2023 - Version: 3.7.1' )
 
 	args               = parser1.parse_args()
 
@@ -767,12 +883,13 @@ def main():
 		preFolder          = args.preFolder,
 		postFolder         = args.postFolder,
 		csvTemplate        = args.csvTemplate,
-		formatJson         = args.formatJson,
+		formatJson         = True if args.formatJson == 'yes' else False,
 		templateFolder     = args.templateFolder,
 		templateEngine     = args.templateEngine,
 		templateFolderPost = args.templateFolderPost,
 		routerId           = args.routerId,
 		showResults        = args.showResults,
+		genAtp             = True if args.genAtp == 'yes' else False,		
 	)
 
 	if dictParam['showResults'] == 'diff' and dictParam['routerId'] != 'name':
