@@ -1,3 +1,8 @@
+[3.7.2 - 2023-07-04]
+
+- Update of lib `textFSM` to 1.1.3.
+
+
 [3.7.1 - 2023-01-10]
 
 - New function `renderAtp(dictParam)`. This funcion, when invoked, will generate a Word docx document, with the information obtained from the `pre` and/or `post` folders.
