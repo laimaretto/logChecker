@@ -666,7 +666,7 @@ def constructExcel(df_final, count_dif, searchMajor, folderLog):#Sort the data a
 		
 		print('#',idx,template)
 	
-	writer.save() #saves workbook to file in python file directory
+	writer.close() #saves workbook to file in python file directory
 
 def renderAtp(dictParam):
 	"""[Generates a ATP based on the json logs obtained from taskAutom.]
@@ -875,7 +875,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all','diff'], default='all', type=str, help='When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all)')
 	parser1.add_argument('-ga', '--genAtp',        type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Lucas Aimaretto - (c)2023 - Version: 3.7.2' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Lucas Aimaretto - (c)2024 - Version: 3.7.3' )
 
 	args               = parser1.parse_args()
 
