@@ -1,3 +1,11 @@
+[4.0.1 - 2024-03-20]
+
+- Update of libs:
+    - textfsm==1.1.3
+    - pandas>=1.5.2,<=2.0.3
+    - XlsxWriter>=3.0.3,<=3.2.0
+    - ttp>=0.9.0,<=0.9.5
+
 [3.7.2 - 2023-07-04]
 
 - Update of lib `textFSM` to 1.1.3.
