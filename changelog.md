@@ -1,3 +1,49 @@
+[3.7.2 - 2023-07-04]
+
+- Update of lib `textFSM` to 1.1.3.
+
+
+[3.7.1 - 2023-01-10]
+
+- New function `renderAtp(dictParam)`. This funcion, when invoked, will generate a Word docx document, with the information obtained from the `pre` and/or `post` folders.
+
+
+[3.6.1 - 2023-01-10]
+
+- New function `searchDiffOnly(datosEquipoPre, datosEquipoPost, dTmplt, routerId)`. This funcion, when invoked, will show only different fields when a comparison is made.
+
+[3.5.10 - 2022-12-04]
+
+- New function `fncRun(dictParam)`. `dictParam` is a dictionary containing all the configuration parameters.
+
+[3.5.9 - 2022-11-28]
+- Update of libraries
+    - `textfsm==1.1.2`
+    - `pandas==1.5.2`
+    - `XlsxWriter==3.0.3`
+    - `ttp==0.9.0`
+
+[3.5.8 - 2022-11-09]
+- The calling for function `main()` was commented out, so the program runs once when installed by `pip` and invoked from CLI.
+
+
+[3.5.6 - 2022-11-09]
+- Better control on the folders for templates.
+
+[3.5.3 - 2022-11-09]
+- Better control on the folders for templates.
+
+[3.5.2 - 2022-11-08]
+- The parameters `-tf` and `-tf-post` can be set independently. If none are set, templates are looked for under `Templates/`. If not, logChecker will pay attention to either or both `-tf` and/or `-tf-post`.
+
+[3.5.1 - 2022-10-23]
+- Reoder of files
+
+[3.5.0 - 2022-10-23]
+- First version on `PyPI`.
+- Renamed to `logChecker`.
+
+
 [3.4.0 - 2022-09-27]
 - Control keywords for the templates to control the resulting columns in each report.
 - CLI paramter to control wether we want to use the name of the router, its IP adress, or both.

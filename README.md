@@ -8,16 +8,8 @@ This idea was born because of the need for a simple tool in order to automate th
 These libraries have been tested under Ubuntu 20.04 and Python3.8.
 
 ```bash
-sudo pip3 install -r requirements.txt
+sudo pip3 install logChecker
 ```
-
-#### Compile
-You can run `logAnalyzer` directly from the CLI using Python. However, compiling improves performance.
-
-```bash
-python3 -m nuitka logAnalizer.py
-```
-Compiling has been tested succesfully under Ubuntu. Don't know if this is directly supported under Windows. If it fails, let me know. Nevertheless, as mentioned, you can run `logAnalyzer_win` directly from the CLI using Python
 
 # Usage
 
@@ -27,28 +19,11 @@ The program needs two mandatory inputs:
 
 ### Templates
 
-The templates are stored by default under the `Templates/` folder. logAnalyzer reads either the CSV or the template folder to perform the function of parsing.
+The templates are stored by default under the `Templates/` folder. logChecker reads either the CSV or the template folder to perform the function of parsing.
 
-Inside each template file, one can include control variables. Also, some mandatory comments are needed.
+To find out a set of Templates that can be used, see [`here`](https://github.com/laimaretto/logTemplates)
 
-#### - Mandatory
-```#Command: /show router bgp summary```
-
-The above is neede in each template file to let logAnalyzer know which command we are trying to parse. We could use some variables as well, suche as `#Command: /show router \S+ interface`.
-
-#### - Optional
-```
-#filterAction:exclude or include-only
-#filterColumns:Var1,Var2,Var3
-#majorDown:String1,String2
-```
-These are control keywords. The control keyword `#filterAction` allows only the actions `exclude` or `include-only`. This will modify the resulting columns of the report. The resulting columns sholud be declared under the control keyword `#filterColumns`.
-
-The keyword `#majorDown` allows us to declared a number of template-specific keywords that logAnalyzer will look for when processing the outputs. So, for example, if our output should be considerd as `down` when the string `connect` is seen, then `connect` should be placed in `#majorDown`.
-
-### CSV
-
-It is possible to use a CSV file, that includes the specific templates to be used in the analysys.
+It is possible to use a separate file to specify which templates to use, such as.
 
 ```csv
 show_router_bgp_summary.template
@@ -59,10 +34,10 @@ If omitted, all the templates insisde the templates folder, will be used.
 
 # Results
 
-If `logAnalyzer` is invoked only with option `-pre`, reads the specific content in the log folder for a given command and then saves the results in an Excel report. We need to specify format of the logs, either `-json yes|no` and also the parsing engine, either `-te textFSM|ttp`. Also, the folder where the templates are located, with `-tf Folder`.
+If `logChecker` is invoked only with option `-pre`, reads the specific content in the log folder for a given command and then saves the results in an Excel report. We need to specify format of the logs, either `-json yes|no` and also the parsing engine, either `-te textFSM|ttp`. Also, the folder where the templates are located, with `-tf Folder`.
 
 ```bash
-$ python3 logAnalyzer.py -csv templateExample.csv -pre folderLogs/ -json yes -te ttp -tf TemplatesTTP/
+$ python3 logChecker.py -csv templateExample.csv -pre folderLogs/ -json yes -te ttp -tf TemplatesTTP/
 
 <_io.TextIOWrapper name='Templates/nokia_sros_show_service_sdp-using.template' mode='r' encoding='UTF-8'>
 #####Plantillas Cargadas Exitosamente#####
@@ -73,10 +48,10 @@ ROUTER_EXAMPLE_rx.txt nokia_sros_show_service_sdp-using.template
 Saving Excel
 #
 ```
-On the other hand, if `logAnalyzer` is invoked with folder `-pre` and `-post`, it compares the content of pre and post log folders, such as if we run checks to see the status of the routers before and after a task, and then saves the results in an Excel report.
+On the other hand, if `logChecker` is invoked with folder `-pre` and `-post`, it compares the content of pre and post log folders, such as if we run checks to see the status of the routers before and after a task, and then saves the results in an Excel report.
 
 ```bash
-$ python3 logAnalyzer.py -csv templateExample.csv -pre folderLogsBefore/ -post folderLogsAfter/ -json yes --te textFSM -tf TemplatesFSM/
+$ python3 logChecker.py -csv templateExample.csv -pre folderLogsBefore/ -post folderLogsAfter/ -json yes --te textFSM -tf TemplatesFSM/
 
 <_io.TextIOWrapper name='Templates/nokia_sros_show_service_sdp-using.template' mode='r' encoding='UTF-8'>
 #####Plantillas Cargadas Exitosamente#####
@@ -92,10 +67,10 @@ Saving Excel
 
 ## Configuration Options
 
-`logAnalyzer` can be configured through CLI as shown below.
+`logChecker` can be configured through CLI as shown below.
 
 ```bash
-$ python3 logAnalyzer.py -h
+$ python3 logChecker.py -h
 usage: PROG [options]
 
 Log Analysis
