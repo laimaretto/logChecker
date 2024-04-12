@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# 
+#
+# Copyright (C) 2024 Lucas Aimaretto / laimaretto@gmail.com, Beatriz Bonafe / bonafencb@gmail.com , Kathleen Mendonca / kathleencristine20@gmail.com
 # Copyright (C) 2023 Lucas Aimaretto / laimaretto@gmail.com
 # Copyright (C) 2020 Manuel Saldivar / manuelsaldivar@outlook.com.ar, Lucas Aimaretto / laimaretto@gmail.com
 # 
@@ -580,20 +581,13 @@ def searchDiffOnly(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 
 			finalColumns = list(dfMerge_new.columns)
 			finalColumns.remove('NAME')
-			if 'Where' in finalColumns:
-				finalColumns.remove('Where')
+			finalColumns.remove('Where')
 
 			if len(filterCols) > 0:
 				[finalColumns.remove(x) for x in filterCols]
-				if 'Where' in list(dfMerge_new.columns):
-					finalColumns = ['NAME'] + filterCols + finalColumns + ['Where']
-				else:
-					finalColumns = ['NAME'] + filterCols + finalColumns
+				finalColumns = ['NAME'] + filterCols + finalColumns + ['Where']
 			else:
-				if 'Where' in list(dfMerge_new.columns):
-					finalColumns = ['NAME'] + finalColumns + ['Where']
-				else:
-					finalColumns = ['NAME'] + finalColumns
+				finalColumns = ['NAME'] + finalColumns + ['Where']
 
 			dfMerge_new         = dfMerge_new[finalColumns]
 			countDif[tmpltName]['dfResultDatos'] = dfMerge_new.sort_values(by = finalColumns)
