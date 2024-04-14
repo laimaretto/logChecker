@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-# 
+#
+# Copyright (C) 2024 Lucas Aimaretto / laimaretto@gmail.com, Beatriz Bonafe / bonafencb@gmail.com , Kathleen Mendonca / kathleencristine20@gmail.com
 # Copyright (C) 2023 Lucas Aimaretto / laimaretto@gmail.com
 # Copyright (C) 2020 Manuel Saldivar / manuelsaldivar@outlook.com.ar, Lucas Aimaretto / laimaretto@gmail.com
 # 
-# This is logCheck
+# This is logChecker
 # 
-# logCheck is free software: you can redistribute it and/or modify
+# logChecker is free software: you can redistribute it and/or modify
 # it under the terms of the 3-clause BSD License.
 # 
-# logCheck is distributed in the hope that it will be useful,
+# logChecker is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY of any kind whatsoever.
 # 
 
@@ -23,7 +24,7 @@ from ttp import ttp
 import os
 
 import docx
-from docx.enum.style import WD_STYLE_TYPE 
+from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_LINE_SPACING
 from docx.shared import Pt
 
@@ -35,19 +36,73 @@ DATA_FLTR_COLS     = '#filterColumns:'
 DATA_FLTR_ACTN     = '#filterAction:'
 DATA_SHOW_DIFF_COL = '#showDiffColumns'
 
+WIDTH_A_IDX = 22
+WIDTH_B_IDX = 20
+
 RTR_ID = dict(
 	name = ['NAME'],
 	both = ['NAME','IP'],
 	ip   = ['IP']
 )
 
+CELL_COLOR = 'black'
+CELL_FONT_SIZE = '12'
+NO_MATCH = ['No matching entries found']
+
+D_STATUS = dict(
+	no_parsing = dict( #Hay comando, no hay parsing
+		colorTab = '#4092FF', #blue
+		warnText = '####### NO Parsing Detected ###############',
+		errText  = '####### NO Parsing Detected ###############',
+		shortText = 'No Parsing',
+		),
+	no_matching_entries = dict(
+		colorTab = '#CCCCCC', #gray
+		warnText = '####### No Matching Entries ###############',
+		errText  = '####### No Matching Entries ###############',
+		shortText = 'No Matching Entries',
+		),
+	no_command = dict( #no hay comando, no hay parsing
+		colorTab = '#9765FE', #purple
+		warnText = '####### NO Command in log folder ###############',
+		errText  = '####### NO Command in log folder ###############',
+		shortText = 'No Command',
+		),
+	no_data = dict( #hay comando, hay parsing, pero sin datos
+		colorTab = '#F06AE5', #pink
+		warnText = '####### No Data in Command ###############',
+		errText  = '####### No Data in Command ###############',
+		shortText = 'No Data in Log',
+		),
+	ok = dict(
+		colorTab = '#37CC73', #green
+		warnText = '####### NO POST-TASK CHANGES DETECTED #####',
+		errText  = '####### NO MAJOR ERRORS FOUND #############',
+		shortText = 'Ok!',
+		),
+	changes_detected = dict(
+		colorTab = '#FFD568', #yellow
+		warnText = '####### CHANGES DETECTED ##################',
+		errText  = '####### NO MAJOR ERRORS FOUND #############',
+		shortText = 'Warning',
+		),
+	major_errors = dict(
+		colorTab = '#F47F31', #orange
+		warnText = '####### CHANGES DETECTED ##################',
+		errText  = '####### MAJOR ERRORS DETECTED POST-TASK ###',
+		shortText = 'Major Errors',
+	)
+)
 
 def readTemplate(fileTemplate, templateFolder, templateEngine):
-	
-	# Read the list of templates passed by CSV of textFSM and return template read list (read)
-	# list of parsed variable names, list of template names 
-	# If fileTemplate is omitted, then all the templates inside the folder are considered.
-	
+	'''
+	Read the list of templates passed by CSV of textFSM and return template read list (read)
+
+	List of parsed variable names, list of template names
+
+	If fileTemplate is omitted, then all the templates inside the folder are considered.
+	'''
+
 	if fileTemplate != '':
 		with open(fileTemplate,'r') as f:
 			templates = [x.replace('\n','') for x in f.readlines()]
@@ -57,7 +112,7 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 		else:
 			print(f'The folder {templateFolder} does not exists. Please check the folder name. Quitting...')
 			quit()
-	
+
 	if len(templates) == 0:
 		print(f"No templates have been gathered from folder {templateFolder}. Check folder name. Quitting...")
 		quit()
@@ -73,7 +128,7 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 			'filterColumns':[],
 			'filterAction':None,
 			'showDiffColumns':[],
-		}	
+		}
 
 		fName = templateFolder+tmpltName
 
@@ -142,7 +197,7 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 				h2 = line.find('#Command: ')
 				h3 = line.find('#majorDown: ')
 				h4 = line.find('#filterColumns: ')
-				h5 = line.find('#filterAction: ')	
+				h5 = line.find('#filterAction: ')
 				
 				if h1 != -1:
 					col = line.split(': ')[1].strip('\n').split(",")
@@ -217,7 +272,7 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 		if len(d[tmpltName]['showDiffColumns']) > 0:
 
 			print(f'The template {tmpltName} has the following columns to be shown when displaying diff-results:')
-			print(f'columns: {d[tmpltName]["showDiffColumns"]}')			
+			print(f'columns: {d[tmpltName]["showDiffColumns"]}')
 
 			# checking column's names
 			x = [col for col in d[tmpltName]['showDiffColumns'] if col not in d[tmpltName]['templateColumns']]
@@ -238,29 +293,31 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 					print(f'The columns you want to use for displaying results are not conisdered inside the filter.')
 					print(d[tmpltName]['showDiffColumns'])
 					print(f'Quitting...')
-					quit()					
+					quit()
 
 	print(f'##### Successfully Loaded Templates from folder {templateFolder} #####')
-	return d 
+	return d
 
 def makeParsed(nomTemplate, routerLog, templateFolder, templateEngine, templateColumns):
 	"""
 	Parse through textFSM (reading the file again)
 
 	Args:
-		nomTemplate (string): name of file containgin the textFSM template
+		nomTemplate (string): name of file containing the textFSM template
 		routerLog (string):   logs of router
-		tmpltFolder
+		tmpltFolder (string): folder containing the templates
+		templateEngine (string): type of templates
+		templateColumns (list): columns in the template
 
 	Returns:
-		list with results
+		dataframe with parsed results
 	"""
 
 	if templateEngine == 'textFSM':
 
 		template         = open(templateFolder + nomTemplate)
 		results_template = textfsm.TextFSM(template)
-		parsed_results   = results_template.ParseText (routerLog)
+		parsed_results   = results_template.ParseText(routerLog)
 
 		# With list of results, we build a Pandas DataFrame
 		parsed_results = pd.DataFrame(parsed_results, columns= templateColumns)
@@ -287,6 +344,8 @@ def readLog(logFolder, formatJson):
 	Args:
 		logFolder (string):  name of folder
 		formatJson (string): "yes" or "no"
+
+	Returns: dictionary with logs
 	"""
 
 	if formatJson is True:
@@ -298,12 +357,12 @@ def readLog(logFolder, formatJson):
 		ending = '*rx.txt'
 
 	if _platform == "linux" or _platform == "linux2" or _platform == "darwin":
-    	# linux
+		# linux
 
 		listContent  = [f for f in glob.glob(logFolder  + ending)]
 
 	elif _platform == "win64" or _platform == "win32":
-    	# Windows 64-bit
+		# Windows 64-bit
 
 		listContent  = [f.replace("\\", '/') for f in glob.glob(logFolder  + ending)]
 	else:
@@ -354,6 +413,11 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 		orderedColums = RTR_ID[routerId] + filterCols
 		dfTemp        = pd.DataFrame(columns=orderedColums)
 
+		if tmpltName not in datosEquipo:
+			datosEquipo[tmpltName] = {}
+			
+		datosEquipo[tmpltName]['parseStatus'] = 'no_command'
+
 		for idR, routerLogKey in enumerate(dLog.keys()):
 
 			routerLogFname  = routerLogKey.split("/")[-1]
@@ -372,7 +436,7 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 				# searchKey es el regex match entre logs y prog
 				match = prog.search(cmdsLogs)
 
-				if match: 
+				if match:
 					#if command(in template) == command(in key of router) then we stores log info in routeLog variable
 					# significa que el comando se ejecutó en el router y existe un template
 					# para ese comando.
@@ -385,7 +449,7 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 
 					# "/show router 4001 route-table | match No": "No. of Routes: 566",
 					# "/show router 4002 route-table | match No": "MINOR: CLI Invalid router \"4002\".\u0007",
-					# "/show router route-table | match No": "No. of Routes: 3337",						
+					# "/show router route-table | match No": "No. of Routes: 3337",
 
 					routerLog = cmdsLogs + '\n' + dLog[routerLogKey][cmdsLogs] + '\n'
 
@@ -416,27 +480,41 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 
 					dfTemp = pd.concat([dfTemp, dfResult])
 
+					if len(dLog[routerLogKey][cmdsLogs]) > 0 and len(dfTemp) == 0:
+						if any(no_match in dLog[routerLogKey][cmdsLogs] for no_match in NO_MATCH):
+							datosEquipo[tmpltName]['parseStatus'] = 'no_matching_entries'
+						else:
+							datosEquipo[tmpltName]['parseStatus'] = 'no_parsing'
+					elif len(dfTemp) == 0 and len(dLog[routerLogKey][cmdsLogs]) == 0:
+						datosEquipo[tmpltName]['parseStatus'] = 'no_data'
+					else:
+						datosEquipo[tmpltName]['parseStatus'] = 'ok'
+
 		# It is stored in the dataEquipment dictionary with the key nomTemplate
 		# the DF with the data of all routers
-		datosEquipo[tmpltName] = dfTemp
+		datosEquipo[tmpltName]['dfResultDatos'] = dfTemp
 
 		# I added this here because it was already done in main ().
 		# It is cleaner like this ...
-		datosEquipo[tmpltName].reset_index(level=0, inplace=True)
-		datosEquipo[tmpltName] = datosEquipo[tmpltName].drop(columns='index')
+		datosEquipo[tmpltName]['dfResultDatos'].reset_index(level=0, inplace=True)
+		datosEquipo[tmpltName]['dfResultDatos'] = datosEquipo[tmpltName]['dfResultDatos'].drop(columns='index')
 
 	return datosEquipo
 
 def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
-	#Makes a new table, in which it brings the differences between two tables (post-pre)
-	
+	'''
+	Makes a new table, in which it brings the differences between two tables (post-pre)
+	'''
+
 	countDif   = {}
 
 	for tmpltName in datosEquipoPre.keys():
+		if tmpltName not in countDif:
+			countDif[tmpltName] = {}
 
 		filterCols = dTmplt[tmpltName]['filterColumns']
 
-		dfUnion = pd.merge(datosEquipoPre[tmpltName], datosEquipoPost[tmpltName], how='outer', indicator='Where').drop_duplicates()
+		dfUnion = pd.merge(datosEquipoPre[tmpltName]['dfResultDatos'], datosEquipoPost[tmpltName]['dfResultDatos'], how='outer', indicator='Where').drop_duplicates()
 		dfInter = dfUnion[dfUnion.Where=='both']
 		dfCompl = dfUnion[~(dfUnion.isin(dfInter))].dropna(axis=0, how='all').drop_duplicates()
 		dfCompl['Where'] = dfCompl['Where'].str.replace('left_only','Pre')
@@ -444,24 +522,29 @@ def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 
 		orderedColums = RTR_ID[routerId] + filterCols
 
-		countDif[tmpltName] = dfCompl.sort_values(by = orderedColums)
+		countDif[tmpltName]['dfResultDatos'] = dfCompl.sort_values(by = orderedColums)
 
 	return countDif
 
 def searchDiffOnly(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
+	'''
+	Makes a new table, in which it brings just the differences between two tables (post-pre)
+	'''
 
 	countDif   = {}
 
 	for tmpltName in datosEquipoPre.keys():
+		if tmpltName not in countDif:
+			countDif[tmpltName] = {}
 
 		filterCols = dTmplt[tmpltName]['showDiffColumns']
 
-		dfPre  = datosEquipoPre[tmpltName]
-		dfPost = datosEquipoPost[tmpltName]
+		dfPre  = datosEquipoPre[tmpltName]['dfResultDatos']
+		dfPost = datosEquipoPost[tmpltName]['dfResultDatos']
 
 		dfMerge = pd.merge(dfPre,dfPost, suffixes=('_pre','_post'), how='outer', indicator='Where')
 		dfMerge['Where'] = dfMerge['Where'].str.replace('left_only','Pre')
-		dfMerge['Where'] = dfMerge['Where'].str.replace('right_only','Post')		
+		dfMerge['Where'] = dfMerge['Where'].str.replace('right_only','Post')
 		dfMerge          = dfMerge[dfMerge['Where'].isin(['Pre','Post'])]
 
 		routers = dfMerge['NAME'].unique()
@@ -507,20 +590,24 @@ def searchDiffOnly(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 				finalColumns = ['NAME'] + finalColumns + ['Where']
 
 			dfMerge_new         = dfMerge_new[finalColumns]
-			countDif[tmpltName] = dfMerge_new.sort_values(by = finalColumns)
+			countDif[tmpltName]['dfResultDatos'] = dfMerge_new.sort_values(by = finalColumns)
 		else:
-			countDif[tmpltName] = dfMerge_new
+			countDif[tmpltName]['dfResultDatos'] = dfMerge_new
 
 	return countDif
 
 
 def findMajor(count_dif, dTmplt, routerId, showResults):
-	#Makes a table from the results of searching for Major errors in the post table define in yml file for specific template, 
-	# or down if is not define the words for the template, which are not in the Pre table
+	'''
+	Makes a table from the results of searching for Major errors in the post table define in yml file for specific template,\n
+	or down if is not define the words for the template, which are not in the Pre table
+	'''
 
 	countDown  = {}
 
 	for tmpltName in count_dif.keys():
+		if tmpltName not in countDown:
+			countDown[tmpltName] = {}
 
 		df         = pd.DataFrame()
 
@@ -528,21 +615,21 @@ def findMajor(count_dif, dTmplt, routerId, showResults):
 
 			filterCols = dTmplt[tmpltName]['filterColumns']
 
-			if 'Where' in count_dif[tmpltName].columns:
+			if 'Where' in count_dif[tmpltName]['dfResultDatos'].columns:
 
-				df1 = count_dif[tmpltName][count_dif[tmpltName]['Where']=='Post']
+				df1 = count_dif[tmpltName]['dfResultDatos'][count_dif[tmpltName]['dfResultDatos']['Where']=='Post']
 				
 				if len(df1) > 0:
 					df1 = df1[df1.apply(lambda r: r.str.contains(majorWord, case=False).any(), axis=1)]
 				else:
-					df1 = pd.DataFrame(columns=count_dif[tmpltName].columns)
+					df1 = pd.DataFrame(columns=count_dif[tmpltName]['dfResultDatos'].columns)
 
 				df = pd.concat([df, df1])
 
 				if showResults == 'all':
 					df = df.sort_values(by = RTR_ID[routerId] + filterCols)
 
-		countDown[tmpltName] = df
+		countDown[tmpltName]['dfResultDatos'] = df
 
 	return countDown
 
@@ -552,10 +639,13 @@ def makeTable(datosEquipoPre, datosEquipoPost):#Sort the table pre and post to p
 	datosEquipoPre1 = datosEquipoPre.copy()
 	
 	for tmpltName in datosEquipoPre.keys():
+		if tmpltName not in df_all:
+				df_all[tmpltName] = {}
 
 		datosEquipoPre1[tmpltName]['##']='##'
 
-		df_all[tmpltName] = pd.concat([datosEquipoPre1[tmpltName], datosEquipoPost[tmpltName]], axis=1, keys=('Pre-Check', 'Post-Check'))
+		df_all[tmpltName]['dfResultDatos'] = pd.concat([datosEquipoPre1[tmpltName]['dfResultDatos'], datosEquipoPost[tmpltName]['dfResultDatos']], axis=1, keys=('Pre-Check', 'Post-Check'))
+		df_all[tmpltName]['parseStatus'] = datosEquipoPost[tmpltName]['parseStatus']
 
 	return df_all
 
@@ -581,9 +671,10 @@ def constructExcel(df_final, count_dif, searchMajor, folderLog):#Sort the data a
 
 	for idx,template in enumerate(df_final.keys()):
 
-		dfData  = df_final[template]
-		dfDiff  = count_dif[template]
-		dfMajor = searchMajor[template]
+		dfData  = df_final[template]['dfResultDatos']
+		dfDiff  = count_dif[template]['dfResultDatos']
+		dfMajor = searchMajor[template]['dfResultDatos']
+		dfParseStatus = df_final[template]['parseStatus']
 
 		sheet_name = template.replace('nokia_sros_','')
 		sheet_name = sheet_name.replace('.template','')
@@ -595,75 +686,51 @@ def constructExcel(df_final, count_dif, searchMajor, folderLog):#Sort the data a
 			sheet_name = sheet_name[:31]
 
 		# Selecting Tab's color and error messages
-		if len(dfData) == 0:
-			output = 'blue'
+		if dfParseStatus not in ['ok','changes_detected','major_errors']:
+			output = dfParseStatus
 		elif len(dfMajor) == 0 and len(dfDiff) == 0:
-			output = 'green'
+			output = 'ok'
 		elif len(dfMajor) == 0 and len(dfDiff) != 0:
-			output = 'yellow'
+			output = 'changes_detected'
 		elif len(dfMajor) != 0:
-			output = 'orange'
-
-		d = dict(
-			blue = dict(
-				colorTab = 'blue',
-				warnText = '####### NO Parsing Detected ###############',
-				errText  = '####### NO Parsing Detected ###############',
-				shortText = 'no parsing',
-				),		
-			green = dict(
-				colorTab = 'green',
-				warnText = '####### NO POST-TASK CHANGES DETECTED #####',
-				errText  = '####### NO MAJOR ERRORS FOUND #############',
-				shortText = 'ok',
-				),
-			yellow = dict(
-				colorTab = 'yellow',
-				warnText = '####### CHANGES DETECTED ##################',
-				errText  = '####### NO MAJOR ERRORS FOUND #############',
-				shortText = 'warning',
-				),
-			orange = dict(
-				colorTab = 'orange',
-				warnText = '####### CHANGES DETECTED ##################',
-				errText  = '####### MAJOR ERRORS DETECTED POST-TASK ###',
-				shortText = 'error',
-			)
-		)
+			output = 'major_errors'
 
 		# cell format
-		cell_format  = workbook.add_format({'color': 'red', 'font_size': 14, 'fg_color': d[output]['colorTab'], 'align': 'center', 'border': 1 })
+		cell_format  = workbook.add_format({'color': CELL_COLOR, 'font_size': CELL_FONT_SIZE, 'fg_color': D_STATUS[output]['colorTab'], 'align': 'center', 'border': 1 ,'bold': True})
 
 		# Building index
 		srcCol   = 'A'+str(idx+1)
 		indexSheet.write_url(srcCol, 'internal:'+sheet_name+'!A1', string=sheet_name)
-		indexSheet.write(idx,1, d[output]['shortText'], cell_format)
+		indexSheet.write(idx,1, D_STATUS[output]['shortText'], cell_format)
+		indexSheet.set_column('A:A',WIDTH_A_IDX)
+		indexSheet.set_column('B:B',WIDTH_B_IDX)
 
 		# Creating Tab
 		worksheet = workbook.add_worksheet(sheet_name)
-		worksheet.set_tab_color(d[output]['colorTab'])
+		worksheet.set_tab_color(D_STATUS[output]['colorTab'])
 		writer.sheets[sheet_name] = worksheet
-		dfData.to_excel(writer, sheet_name=sheet_name, startrow=0, startcol=0) #creates Excel File
+		dfData.to_excel(writer, sheet_name=sheet_name, startrow=0, startcol=0) #Creates Excel File
 		worksheet.write_url('A1', 'internal:index!A1', string='Index')
 		
-		### Changes Section
-		srcCol   = 'A'+str(len(dfData)+5)
-		dstCol   = 'H'+str(len(dfData)+5)
-		colRange = srcCol + ':' + dstCol
-		warnTex  = d[output]['warnText']
-		worksheet.merge_range(colRange, warnTex, cell_format)
 		if len(dfDiff) > 0:
-			dfDiff.to_excel(writer, sheet_name=sheet_name, startrow=len(dfData)+6, startcol=0)
-
-		### Major Error Section
-		srcCol   = 'A'+str((len(dfData)+(len(dfDiff)))+9)
-		dstCol   = 'H'+str((len(dfData)+(len(dfDiff)))+9)
-		colRange = srcCol + ':' + dstCol
-		errText   = warnTex  = d[output]['errText']
-		worksheet.merge_range(colRange, errText, cell_format)
+			### Changes Section
+			srcCol   = 'A'+str(len(dfData)+5)
+			dstCol   = 'H'+str(len(dfData)+5)
+			colRange = srcCol + ':' + dstCol
+			warnTex  = D_STATUS[output]['warnText']
+			worksheet.merge_range(colRange, warnTex, cell_format)
+			if len(dfDiff) > 0:
+				dfDiff.to_excel(writer, sheet_name=sheet_name, startrow=len(dfData)+6, startcol=0)
 		if len(dfMajor) > 0:
-			dfMajor.to_excel(writer, sheet_name=sheet_name, startrow=(len(dfData)+(len(dfDiff)))+10, startcol=0)
-		
+			### Major Error Section
+			srcCol   = 'A'+str((len(dfData)+(len(dfDiff)))+9)
+			dstCol   = 'H'+str((len(dfData)+(len(dfDiff)))+9)
+			colRange = srcCol + ':' + dstCol
+			errText   = warnTex  = D_STATUS[output]['errText']
+			worksheet.merge_range(colRange, errText, cell_format)
+			if len(dfMajor) > 0:
+				dfMajor.to_excel(writer, sheet_name=sheet_name, startrow=(len(dfData)+(len(dfDiff)))+10, startcol=0)
+
 		print('#',idx,template)
 	
 	writer.close() #saves workbook to file in python file directory
@@ -690,7 +757,7 @@ def renderAtp(dictParam):
 	print("\nGenerating ATP: " + job0docx)
 
 	myDoc    = docx.Document()
-	myStyles = myDoc.styles  
+	myStyles = myDoc.styles
 
 	styleConsole = myStyles.add_style('Console', WD_STYLE_TYPE.PARAGRAPH)
 	styleConsole.font.name = 'Courier'
@@ -710,7 +777,7 @@ def renderAtp(dictParam):
 
 		docMainTitle = myDoc.add_paragraph('Pre-Check')
 		docMainTitle.style = myDoc.styles['Heading 1']
-		docMainTitle.paragraph_format.line_spacing = 1.5	
+		docMainTitle.paragraph_format.line_spacing = 1.5
 
 		for f in jsonFilesPre:
 			
@@ -764,7 +831,7 @@ def renderAtp(dictParam):
 					docShowTitle.paragraph_format.line_spacing = 1.5
 
 					docShowContent = myDoc.add_paragraph(showContent)
-					docShowContent.style = myDoc.styles['Console']		
+					docShowContent.style = myDoc.styles['Console']
 
 	myDoc.save(job0docx)
 
@@ -798,13 +865,17 @@ def fncRun(dictParam):
 		searchMajor = {}
 
 		for tmpltName in df_final.keys():
-			count_dif[tmpltName]   = pd.DataFrame(columns=df_final[tmpltName].columns)
-			searchMajor[tmpltName] = pd.DataFrame(columns=df_final[tmpltName].columns)
+			if tmpltName not in count_dif:
+				count_dif[tmpltName] = {}
+			count_dif[tmpltName]['dfResultDatos']   = pd.DataFrame(columns=df_final[tmpltName]['dfResultDatos'].columns)
+			if tmpltName not in searchMajor:
+				searchMajor[tmpltName] = {}
+			searchMajor[tmpltName]['dfResultDatos'] = pd.DataFrame(columns=df_final[tmpltName]['dfResultDatos'].columns)
 
 		constructExcel(df_final, count_dif, searchMajor, preFolder)
 
 		if genAtp is True:
-			renderAtp(dictParam)		
+			renderAtp(dictParam)
 
 	elif preFolder != '' and postFolder != '':
 
@@ -855,7 +926,7 @@ def fncRun(dictParam):
 		constructExcel(df_final, count_dif, searchMajor, postFolder)
 
 		if genAtp is True:
-			renderAtp(dictParam)		
+			renderAtp(dictParam)
 
 	elif preFolder == '':
 		print('No PRE folder defined. Please Verify.')
@@ -875,7 +946,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all','diff'], default='all', type=str, help='When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all)')
 	parser1.add_argument('-ga', '--genAtp',        type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Lucas Aimaretto - (c)2024 - Version: 4.0.1' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Lucas Aimaretto - (c)2024 - Version: 4.1.0' )
 
 	args               = parser1.parse_args()
 
@@ -889,7 +960,7 @@ def main():
 		templateFolderPost = args.templateFolderPost,
 		routerId           = args.routerId,
 		showResults        = args.showResults,
-		genAtp             = True if args.genAtp == 'yes' else False,		
+		genAtp             = True if args.genAtp == 'yes' else False,
 	)
 
 	if dictParam['showResults'] == 'diff' and dictParam['routerId'] != 'name':

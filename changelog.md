@@ -1,3 +1,9 @@
+[4.1.0 - 2024-04-10]
+
+- New structure for `datosEquipo[tmpltName]`. Now with `datosEquipo[tmpltName]['parseStatus']` and `datosEquipo[tmpltName]['dfResultDatos']`. Created for better detection of the new statuses of parsing. They specify "no parsing" cases;
+- Removed changes section and major error section in exported sheets, when these sections are empty;
+- More constants indicated in the beginning of the code and add descriptions in some functions.
+
 [4.0.1 - 2024-03-20]
 
 - Update of libs:
