@@ -22,6 +22,7 @@ import json
 import re
 from ttp import ttp
 import os
+import io
 
 import docx
 from docx.enum.style import WD_STYLE_TYPE
@@ -105,6 +106,14 @@ D_STATUS = dict(
 
 GENERAL_TEMPL = 'general.template'
 
+GENERAL_TEMPL_LINES = """#Command: .+
+#Timos: any
+#Version: 1.0.0
+Value Lines (.+)
+
+Start
+  ^${Lines} -> Record"""
+
 NON_COMMAND_KEYS = ['name','ip','version','hwType','#FINSCRIPT','exit all','']
 
 def readTemplate(fileTemplate, templateFolder, templateEngine):
@@ -150,17 +159,17 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 			'showDiffColumns':[],
 		}
 
-		if GENERAL_TEMPL == tmpltName:
-			tmpltFolder = ''
+		if tmpltName == GENERAL_TEMPL:
+			tmpltLines = GENERAL_TEMPL_LINES.splitlines()
+
 		else:
-			tmpltFolder = templateFolder
-		fName = tmpltFolder+tmpltName
-		try:
-			with open(fName) as f:
-				tmpltLines = f.readlines()
-		except:
-			print(f'The template file {tmpltName} does not exist inside the folder {tmpltFolder}.\nPlease check.\nQuitting...')
-			quit()
+			fName = templateFolder+tmpltName
+			try:
+				with open(fName) as f:
+					tmpltLines = f.readlines()
+			except:
+				print(f'The template file {tmpltName} does not exist inside the folder {templateFolder}.\nPlease check.\nQuitting...')
+				quit()
 
 		for line in tmpltLines:
 
@@ -326,7 +335,7 @@ def makeParsed(nomTemplate, routerLog, templateFolder, templateEngine, templateC
 	Args:
 		nomTemplate (string): name of file containing the textFSM template
 		routerLog (string):   logs of router
-		tmpltFolder (string): folder containing the templates
+		templateFolder (string): folder containing the templates
 		templateEngine (string): type of templates
 		templateColumns (list): columns in the template
 
@@ -336,7 +345,11 @@ def makeParsed(nomTemplate, routerLog, templateFolder, templateEngine, templateC
 
 	if templateEngine == 'textFSM':
 
-		template         = open(templateFolder + nomTemplate)
+		if nomTemplate == GENERAL_TEMPL:
+			template = io.StringIO(GENERAL_TEMPL_LINES) #Para leer correctamente en textfsm.TextFSM(template)
+		else:
+			template = open(templateFolder + nomTemplate)
+
 		results_template = textfsm.TextFSM(template)
 		parsed_results   = results_template.ParseText(routerLog)
 
@@ -423,19 +436,19 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 		datosEquipo (dict): Dictionary where keys are templateNames. For each key, a DF with parsed results.
 	"""
 	
-	def detParseStatus(dLog,routerLogKey,cmdsLogs,dfTemp,tmpltName):
+	def detParseStatus(datosCmdsLogs,dfTemp):
 		"""
 		To determine the parseStatus. Options: no_matching_entries, no_parsing, no_data, ok.
 		Here, we don't consider the comparision between pre and post logs (statuses: changes_detected and major_errors)
 		"""
 
 		parseStatus = 'no_template'
-		if len(dLog[routerLogKey][cmdsLogs]) > 0 and len(dfTemp) == 0:
-			if any(no_match in dLog[routerLogKey][cmdsLogs] for no_match in NO_MATCH):
+		if len(datosCmdsLogs) > 0 and len(dfTemp) == 0:
+			if any(no_match in datosCmdsLogs for no_match in NO_MATCH):
 				parseStatus = 'no_matching_entries'
 			else:
 				parseStatus = 'no_parsing'
-		elif len(dfTemp) == 0 and len(dLog[routerLogKey][cmdsLogs]) == 0:
+		elif len(dfTemp) == 0 and len(datosCmdsLogs) == 0:
 			parseStatus = 'no_data'
 		else:
 			parseStatus = 'ok'
@@ -485,6 +498,8 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 		# Y que usarán lo template generico.
 
 		for cmdsLogs in command_keys: #Para cada comando...
+			datosCmdsLogs = dLog[routerLogKey][cmdsLogs] #Logs obtenidos para cada comando
+
 			for idT, tmpltName in enumerate(dTmpl.keys()): #Prueba cada template en lo match
 				commandKey		= dTmpl[tmpltName]['commandKey']
 
@@ -521,7 +536,7 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 					datosEquipo[tmpltName]['command']		= cmdsLogs
 					datosEquipo[tmpltName]['template']		= tmpltName
 
-					routerLog = cmdsLogs + '\n' + dLog[routerLogKey][cmdsLogs] + '\n'
+					routerLog = cmdsLogs + '\n' + datosCmdsLogs + '\n' #Comando y sus datos
 
 					# We parse results from the key:value association
 					# A list is returnd with results
@@ -532,10 +547,12 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 
 					datosEquipo[tmpltName]['dfResultDatos'] = dfTemp
 
-					datosEquipo[tmpltName]['parseStatus'] = detParseStatus(dLog,routerLogKey,cmdsLogs,dfTemp,tmpltName)
+					datosEquipo[tmpltName]['parseStatus'] = detParseStatus(datosCmdsLogs,dfTemp)
 
 		#Processing the no-matched commands, selected in the previous 'for'
 		for i, cmdsLogs in enumerate(noMatchedCommand):
+			datosCmdsLogs = dLog[routerLogKey][cmdsLogs] #Logs obtenidos para cada comando
+
 			if f'general_{i}' not in datosEquipo:
 				datosEquipo[f'general_{i}'] = {}
 			
@@ -551,13 +568,13 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 			datosEquipo[f'general_{i}']['command']	= cmdsLogs
 			datosEquipo[f'general_{i}']['template']	= tmpltName
 
-			routerLog = cmdsLogs + '\n' + dLog[routerLogKey][cmdsLogs] + '\n'
+			routerLog = cmdsLogs + '\n' + datosCmdsLogs + '\n'
 
 			dfResult	= makeParsed(tmpltName, routerLog, templateFolder, templateEngine, templateColumns)
 			dfTemp		= writeDfTemp(dfResult,filterCols,routerId,routerName,routerIP,dfTemp)
 
 			datosEquipo[f'general_{i}']['dfResultDatos']	= dfTemp
-			datosEquipo[f'general_{i}']['parseStatus']		= detParseStatus(dLog,routerLogKey,cmdsLogs,dfTemp,f'general_{i}')
+			datosEquipo[f'general_{i}']['parseStatus']		= detParseStatus(datosCmdsLogs,dfTemp)
 
 	return datosEquipo
 
@@ -1022,7 +1039,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all','diff'], default='all', type=str, help='When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all)')
 	parser1.add_argument('-ga', '--genAtp',        type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='Lucas Aimaretto - (c) 2024 - Version: 4.2.0' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.2.1' )
 
 	args               = parser1.parse_args()
 
