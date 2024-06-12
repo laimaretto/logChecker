@@ -1,10 +1,16 @@
+[4.2.1 - 2024-06-12]
+- Moving `general.template` inside setup.py, then it was necessary to update:
+    - `readTemplate`: to read this template correclty;
+    - `makeParsed`: importing `io` to use in a condition, for `results_template` to work with this general template;
+- `writeDfTemp`: parameter optimization.
+
 [4.2.0 - 2024-06-11]
 - Updating of `parseResults`, changing the order of 'for's: for each command, all templates are tested in `match = prog.search(cmdsLogs)`. In this way, the existence of command log determines the presence of the data in the excel sheet. In previous versions we used the reverse order, so to have data in excel, it was necessary to have the specific template to parse.
 - New: Generic template.
-  - If a command/log don't match with any template available in the specified folder with templates, the parsing is done with `general.template`, available in src. Add structure in `readTemplate`, `parseResults`;
-  - As many sheets as needed can be created by generic template;
-- `parseResults` with new functions `detParseStatus` and `writeDfTemp`.
-- `datosEquipo[tmpltName]['template']` in `datosEquipo[tmpltName]`, to better identification in cases with generic template, when this key is related to `dTmplt`. For example, in `searchDiffAll`, `searchDiffOnly`, `findMajor`.
+    - If a command/log don't match with any template available in the specified folder with templates, the parsing is done with `general.template`, available in src. Add structure in `readTemplate`, `parseResults`;
+    - As many sheets as needed can be created by generic template;
+- `parseResults` with new functions `detParseStatus` and `writeDfTemp`;
+- `datosEquipo[tmpltName]['template']` in `datosEquipo[tmpltName]`, to better identification in cases with generic template, when this key is related to `dTmplt`. For example, in `searchDiffAll`, `searchDiffOnly`, `findMajor`;
 - Index: for better identification, column `Command` added. 
 
 

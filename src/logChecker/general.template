@@ -1,7 +1,0 @@
-#Command: .+
-#Timos: any
-#Version: 1.0.0
-Value Lines (.+)
-
-Start
-  ^${Lines} -> Record
