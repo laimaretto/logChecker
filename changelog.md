@@ -1,3 +1,6 @@
+[4.2.2 - 2024-06-13]
+- Updating of `parseResults`, fix bug with multiple routers
+
 [4.2.1 - 2024-06-12]
 - Moving `general.template` inside setup.py, then it was necessary to update:
     - `readTemplate`: to read this template correclty;
