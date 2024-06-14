@@ -64,7 +64,7 @@ D_STATUS = dict(
 		colorTab = '#4092FF', #blue
 		warnText = '####### CHANGES DETECTED #######',
 		errText  = '####### NO Parsing Detected #######',
-		shortText = 'No Parsing',
+		shortText = "Can't Parsing",
 		),
 	no_matching_entries = dict(
 		colorTab = '#CCCCCC', #gray
@@ -470,51 +470,60 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 			dfResult['IP']   = str(routerIP)
 
 		dfResult = dfResult[orderedColums]
-
 		dfTemp = pd.concat([dfTemp, dfResult])
 
 		# It is stored in the dataEquipment dictionary with the key nomTemplate
 		# the DF with the data of all routers
 		return dfTemp
-	
 
-	datosEquipo  = {}
-	noMatchedCommand = []
+	datosEquipo		= {}
+	dNoMatchedLog	= {} #Dictionary similar to dLog, but only with noMatched information
+	noMatchedCmdAllRtr	= []
 
-	for idR, routerLogKey in enumerate(dLog.keys()): #Para cada router
+	for idR, routerLogKey in enumerate(dLog.keys()): #To each router
 		routerLogFname  = routerLogKey.split("/")[-1]
 
 		routerName		= dLog[routerLogKey]['name']
 		routerIP		= dLog[routerLogKey]['ip']
-		routerVersion	= dLog[routerLogKey]['version']
-		routerHwType	= dLog[routerLogKey]['hwType']
+
+		#The previous versions of taskAutom don't have this information
+		try:
+			routerVersion	= dLog[routerLogKey]['version']
+		except:
+			routerVersion	= 'NA'
+		try:
+			routerHwType	= dLog[routerLogKey]['hwType']
+		except:
+			routerHwType	= 'NA'
 
 		#For use just keys with command:
 		command_keys = [k for k in dLog[routerLogKey].keys() if k not in NON_COMMAND_KEYS]
-		# logs es cada comando que se ejecuto en el router, dentro del json file.
+		# logs is each command that was executed in router, inside json file.
 		
-		noMatchedCommand = command_keys # Todos los comandos aquí. Eso es utilizado más adelante, en lo 2o for que sigue...
-		# Después de lo for con enumerate(dTmpl.keys()), en noMatchedCommand se quedan los comandos que no tienen 'templates específicos'
-		# Y que usarán lo template generico.
+		noMatchedCmdPerRtr = command_keys.copy()
+		# To control which command have no matching template (here, per router)
 
-		for cmdsLogs in command_keys: #Para cada comando...
-			datosCmdsLogs = dLog[routerLogKey][cmdsLogs] #Logs obtenidos para cada comando
+		#For each command in command_keys(list)
+		for cmdsLogs in command_keys: 
+			datosCmdsLogs = dLog[routerLogKey][cmdsLogs] #Logs obtained for each command
 
-			for idT, tmpltName in enumerate(dTmpl.keys()): #Prueba cada template en lo match
+			#For each template, we test the match with command, 
+			for idT, tmpltName in enumerate(dTmpl.keys()):
 				commandKey		= dTmpl[tmpltName]['commandKey']
 
-				# prog es el nombre del comando en cada template file
+				# command name in each template file
 				prog = re.compile(commandKey)
 
-				# searchKey es el regex match entre logs y prog
+				# searchKey is the regex match between logs and prog
 				match = prog.search(cmdsLogs)
 
 				if match and (tmpltName != GENERAL_TEMPL):
-					noMatchedCommand.remove(cmdsLogs) #Para tener en noMatchedCommand solo los comandos que no hacen match aquí
+					# If there's a match, we take that command off the list noMatchedCmdPerRtr
+					# Important for processing cases that use generic template
+					noMatchedCmdPerRtr.remove(cmdsLogs)
 					
-					#if command(in template) == command(in key of router) then we stores log info in routeLog variable
-					# significa que el comando se ejecutó en el router y existe un template
-					# para ese comando.
+					# if command(in template) == command(in key of router) then we stores log info in routeLog variable
+					# Means that the command was executed and there's a template to this command
 
 					# {
 					# 	'logs1':'output1',
@@ -529,52 +538,77 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 					templateColumns	= dTmpl[tmpltName]['templateColumns']
 					filterCols		= dTmpl[tmpltName]['filterColumns']
 					orderedColums	= RTR_ID[routerId] + filterCols
-					dfTemp			= pd.DataFrame(columns=orderedColums)
 
 					if tmpltName not in datosEquipo:
 						datosEquipo[tmpltName] = {}
+
 					datosEquipo[tmpltName]['command']		= cmdsLogs
 					datosEquipo[tmpltName]['template']		= tmpltName
 
-					routerLog = cmdsLogs + '\n' + datosCmdsLogs + '\n' #Comando y sus datos
+					if 'dfResultDatos' not in datosEquipo[tmpltName]:
+						datosEquipo[tmpltName]['dfResultDatos'] = pd.DataFrame()
+
+					routerLog = cmdsLogs + '\n' + datosCmdsLogs + '\n' #Command and your data
 
 					# We parse results from the key:value association
 					# A list is returnd with results
 					# to parse, with provide the complete set of columns as defined inside the template: templateColumns
-					dfResult = makeParsed(tmpltName, routerLog, templateFolder, templateEngine, templateColumns)
+					dfResult								= makeParsed(tmpltName, routerLog, templateFolder, templateEngine, templateColumns)
+					datosEquipo[tmpltName]['dfResultDatos']	= writeDfTemp(dfResult, filterCols,routerId,routerName,routerIP, datosEquipo[tmpltName]['dfResultDatos'])
+					datosEquipo[tmpltName]['parseStatus']	= detParseStatus(datosCmdsLogs, datosEquipo[tmpltName]['dfResultDatos'])
 
-					dfTemp = writeDfTemp(dfResult,filterCols,routerId,routerName,routerIP,dfTemp)
+		# Writing dNoMatchedLog for each router. At this point, all attempts to match templates already occurred.
+		for cmdsLogs in noMatchedCmdPerRtr:
 
-					datosEquipo[tmpltName]['dfResultDatos'] = dfTemp
+			if cmdsLogs not in noMatchedCmdAllRtr:
+				noMatchedCmdAllRtr.append(cmdsLogs) 
+				# Adding to list to no-matched commands, containing information of all routers
+			
+			#Adding the information to dNoMatchedLog: the dict that only has the cases of no-matched command
+			if routerLogKey not in dNoMatchedLog:
+				dNoMatchedLog[routerLogKey] = {}
 
-					datosEquipo[tmpltName]['parseStatus'] = detParseStatus(datosCmdsLogs,dfTemp)
+			#This information is required in the following "for"
+			dNoMatchedLog[routerLogKey][cmdsLogs]= dLog[routerLogKey][cmdsLogs] 
+			dNoMatchedLog[routerLogKey]['ip']	= dLog[routerLogKey]['ip']		# for writeDfTemp
+			dNoMatchedLog[routerLogKey]['name']	= dLog[routerLogKey]['name']	# for writeDfTemp
 
-		#Processing the no-matched commands, selected in the previous 'for'
-		for i, cmdsLogs in enumerate(noMatchedCommand):
-			datosCmdsLogs = dLog[routerLogKey][cmdsLogs] #Logs obtenidos para cada comando
+	#Processing the no-matched commands
+	for idR, routerLogKey in enumerate(dNoMatchedLog.keys()):
+		# Basic information of the router, for writeDfTemp
+		routerName	= dLog[routerLogKey]['name']
+		routerIP	= dLog[routerLogKey]['ip']
+
+		for i,cmdsLogs in enumerate(noMatchedCmdAllRtr):
+			# Here, enumerate and noMatchedCmdAllRtr are used to ensure that all no-matched commands,
+			# indenpendently of the router, will have the same identification (i).
+			# So we can keep the information of the same command together correctly
+
+			# If certain router have datosCmdsLogs, we use this information in this iteration.
+			# Otherwise, moves to the other iteration of "for" of commands.
+			try:
+				datosCmdsLogs = dNoMatchedLog[routerLogKey][cmdsLogs] #Logs obtained for each command
+			except:
+				continue
+
+			templateColumns	= dTmpl[GENERAL_TEMPL]['templateColumns']
+			filterCols		= dTmpl[GENERAL_TEMPL]['filterColumns']
+			orderedColums	= RTR_ID[routerId] + filterCols
 
 			if f'general_{i}' not in datosEquipo:
 				datosEquipo[f'general_{i}'] = {}
-			
-			tmpltName		= GENERAL_TEMPL
-			templateFolder 	= ''
-
-			templateColumns	= dTmpl[tmpltName]['templateColumns']
-			filterCols		= dTmpl[tmpltName]['filterColumns']
-			orderedColums	= RTR_ID[routerId] + filterCols
-			
-			dfTemp			= pd.DataFrame(columns=orderedColums)
 
 			datosEquipo[f'general_{i}']['command']	= cmdsLogs
-			datosEquipo[f'general_{i}']['template']	= tmpltName
+			datosEquipo[f'general_{i}']['template']	= GENERAL_TEMPL
+
+			if 'dfResultDatos' not in datosEquipo[f'general_{i}']:
+				datosEquipo[f'general_{i}']['dfResultDatos'] = pd.DataFrame()
 
 			routerLog = cmdsLogs + '\n' + datosCmdsLogs + '\n'
 
-			dfResult	= makeParsed(tmpltName, routerLog, templateFolder, templateEngine, templateColumns)
-			dfTemp		= writeDfTemp(dfResult,filterCols,routerId,routerName,routerIP,dfTemp)
-
-			datosEquipo[f'general_{i}']['dfResultDatos']	= dfTemp
-			datosEquipo[f'general_{i}']['parseStatus']		= detParseStatus(datosCmdsLogs,dfTemp)
+			dfResult									 = makeParsed(GENERAL_TEMPL, routerLog, '', templateEngine, templateColumns)
+			datosEquipo[f'general_{i}']['dfResultDatos'] = writeDfTemp(dfResult, filterCols,routerId,routerName,routerIP, datosEquipo[f'general_{i}']['dfResultDatos'])
+			datosEquipo[f'general_{i}']['parseStatus']	 = detParseStatus(datosCmdsLogs, datosEquipo[f'general_{i}']['dfResultDatos'])
 
 	return datosEquipo
 
@@ -1039,7 +1073,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all','diff'], default='all', type=str, help='When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all)')
 	parser1.add_argument('-ga', '--genAtp',        type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.2.1' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.2.2' )
 
 	args               = parser1.parse_args()
 
