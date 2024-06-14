@@ -1,3 +1,10 @@
+[4.2.2 - 2024-06-14]
+- Updating `parseResults`, fix bug with multiple routers with `general.template`:
+    - Add: `dNoMatchedLog`, to save information of no-matched commands in new dictionary, with the same structure of dLog.
+    - Add: `noMatchedCmdAllRtr` - To save all no-matched commands, independently of router
+    - Changed: `noMatchedCommand` to `noMatchedCmdPerRtr`
+    - New for loop to interact with `dNoMatchedLog`, where the `general.template` is used.
+
 [4.2.1 - 2024-06-12]
 - Moving `general.template` inside setup.py, then it was necessary to update:
     - `readTemplate`: to read this template correclty;
