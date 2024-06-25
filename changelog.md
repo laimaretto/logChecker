@@ -1,3 +1,10 @@
+[4.2.3 - 2024-06-25]
+- Updating `searchDiffAll` and `searchDiffOnly`: adjustments for comparision.
+    - When the template is not general, uses `pd.merge` to compare the data from pre and post dataFrames.
+    - If it's general template with the same length for pre and post dataFrames, uses `compare` from `pandas`.
+    - When using general template and the dataFrames don't have the same size, the comparision should be done by specific template.
+- New `parseStatus` for when its necessary to use specific template.
+
 [4.2.2 - 2024-06-14]
 - Updating `parseResults`, fix bug with multiple routers with `general.template`:
     - Add: `dNoMatchedLog`, to save information of no-matched commands in new dictionary, with the same structure of dLog.
