@@ -39,13 +39,13 @@ DATA_SHOW_DIFF_COL = '#showDiffColumns'
 
 INDEX_COL = {
 	'sheet' : {
-		'position': 0, 'col': 'A:A', 'colName': 'Sheet', 'width': 22,
+		'position': 0, 'col': 'A:A', 'colName': 'Sheet', 'width': 20,
 	},
 	'command' : {
-		'position': 1, 'col': 'B:B', 'colName': 'Command', 'width': 30,
+		'position': 1, 'col': 'B:B', 'colName': 'Command', 'width': 35,
 	},
     'status' : {
-		'position': 2, 'col': 'C:C', 'colName' : 'Status', 'width' : 20,
+		'position': 2, 'col': 'C:C', 'colName' : 'Status', 'width' : 35,
 	}
 }
 
@@ -101,6 +101,12 @@ D_STATUS = dict(
 		warnText = '####### CHANGES DETECTED #######',
 		errText  = '####### MAJOR ERRORS DETECTED POST-TASK #######',
 		shortText = 'Major Errors',
+	),
+	ambiguity = dict(
+		colorTab = '#40FFE8', #teal
+		warnText = "####### CAN'T COMPARE. PLEASE USE THE SPECIFIC TEMPLATE #######",
+		errText  = '####### MAJOR ERRORS DETECTED POST-TASK #######',
+		shortText = "Can't compare: use specific template",
 	)
 )
 
@@ -627,16 +633,35 @@ def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 		# Por eso que es necessario gravar el template en datosEquipoPre[tmpltName]['template'], para entonces relacionar ese
 		# valor con el dTmplt[template] (en los ejemplos de template generico, template == 'generic.template')
 
-		template = datosEquipoPre[tmpltName]['template']
-		filterCols = dTmplt[template]['filterColumns']
-		dfUnion = pd.merge(datosEquipoPre[tmpltName]['dfResultDatos'], datosEquipoPost[tmpltName]['dfResultDatos'], how='outer', indicator='Where').drop_duplicates()
-		dfInter = dfUnion[dfUnion.Where=='both']
-		dfCompl = dfUnion[~(dfUnion.isin(dfInter))].dropna(axis=0, how='all').drop_duplicates()
-		dfCompl['Where'] = dfCompl['Where'].str.replace('left_only','Pre')
-		dfCompl['Where'] = dfCompl['Where'].str.replace('right_only','Post')
+		template	= datosEquipoPre[tmpltName]['template']
+		filterCols	= dTmplt[template]['filterColumns']
+
+		if template != GENERAL_TEMPL:
+			dfUnion = pd.merge(datosEquipoPre[tmpltName]['dfResultDatos'], datosEquipoPost[tmpltName]['dfResultDatos'], how='outer', indicator='Where').drop_duplicates()
+			dfInter = dfUnion[dfUnion.Where=='both']
+			dfCompl = dfUnion[~(dfUnion.isin(dfInter))].dropna(axis=0, how='all').drop_duplicates()
+			dfCompl['Where'] = dfCompl['Where'].str.replace('left_only','Pre')
+			dfCompl['Where'] = dfCompl['Where'].str.replace('right_only','Post')
+
+		elif (template == GENERAL_TEMPL) and (len(datosEquipoPre[tmpltName]['dfResultDatos']) == len(datosEquipoPost[tmpltName]['dfResultDatos'])):
+
+			dfCompl		= datosEquipoPre[tmpltName]['dfResultDatos'].compare(datosEquipoPost[tmpltName]['dfResultDatos'])
+			CompIdx		= dfCompl.index
+
+			dfCompPre	= datosEquipoPre[tmpltName]['dfResultDatos'].loc[CompIdx]
+			dfCompPost	= datosEquipoPost[tmpltName]['dfResultDatos'].loc[CompIdx]
+
+			dfCompPre['Where']	= 'Pre'
+			dfCompPost['Where']	= 'Post'
+
+			dfCompl = pd.concat([dfCompPre,dfCompPost])
+
+		# When using general template and the dfs from pre and post are != in size, the comparision doesn't work 
+		# very well with the options above.
+		else:
+			datosEquipoPost[tmpltName]['parseStatus'] = 'ambiguity'
 
 		orderedColums = RTR_ID[routerId] + filterCols
-
 		countDif[tmpltName]['dfResultDatos'] = dfCompl.sort_values(by = orderedColums)
 
 	return countDif
@@ -658,16 +683,32 @@ def searchDiffOnly(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 		dfPre  = datosEquipoPre[tmpltName]['dfResultDatos']
 		dfPost = datosEquipoPost[tmpltName]['dfResultDatos']
 
-		dfMerge = pd.merge(dfPre,dfPost, suffixes=('_pre','_post'), how='outer', indicator='Where')
-		dfMerge['Where'] = dfMerge['Where'].str.replace('left_only','Pre')
-		dfMerge['Where'] = dfMerge['Where'].str.replace('right_only','Post')
-		dfMerge          = dfMerge[dfMerge['Where'].isin(['Pre','Post'])]
+		if template != GENERAL_TEMPL:
+			dfMerge = pd.merge(dfPre,dfPost, suffixes=('_pre','_post'), how='outer', indicator='Where')
+			dfMerge['Where'] = dfMerge['Where'].str.replace('left_only','Pre')
+			dfMerge['Where'] = dfMerge['Where'].str.replace('right_only','Post')
+			dfMerge          = dfMerge[dfMerge['Where'].isin(['Pre','Post'])]
+		
+		elif (template == GENERAL_TEMPL) and (len(datosEquipoPre[tmpltName]['dfResultDatos']) == len(datosEquipoPost[tmpltName]['dfResultDatos'])):
 
-		routers = dfMerge['NAME'].unique()
+			dfCompl		= datosEquipoPre[tmpltName]['dfResultDatos'].compare(datosEquipoPost[tmpltName]['dfResultDatos'])
+			CompIdx		= dfCompl.index
+
+			dfCompPre	= datosEquipoPre[tmpltName]['dfResultDatos'].loc[CompIdx]
+			dfCompPost	= datosEquipoPost[tmpltName]['dfResultDatos'].loc[CompIdx]
+
+			dfCompPre['Where']	= 'Pre'
+			dfCompPost['Where']	= 'Post'
+
+			dfMerge = pd.concat([dfCompPre,dfCompPost])
+
+		else:
+			datosEquipoPost[tmpltName]['parseStatus'] = 'ambiguity'
+			dfMerge = pd.concat([dfCompPre,dfCompPost])
 
 		dfMerge_new  = pd.DataFrame()
 
-		for router in routers:
+		for router in dfMerge['NAME'].unique():
 
 			dfRouter = pd.DataFrame()
 
@@ -764,7 +805,10 @@ def makeTable(datosEquipoPre, datosEquipoPost):
 
 		datosEquipoPre1[tmpltName]['##']='##'
 
-		df_all[tmpltName]['dfResultDatos']	= pd.concat([datosEquipoPre1[tmpltName]['dfResultDatos'], datosEquipoPost[tmpltName]['dfResultDatos']], axis=1, keys=('Pre-Check', 'Post-Check'))
+		dfPre1 = datosEquipoPre1[tmpltName]['dfResultDatos'].reset_index(drop=True)
+		dfPost = datosEquipoPost[tmpltName]['dfResultDatos'].reset_index(drop=True)
+		df_all[tmpltName]['dfResultDatos']	= pd.concat([dfPre1, dfPost], axis=1, keys=('Pre-Check', 'Post-Check'))
+
 		df_all[tmpltName]['parseStatus']	= datosEquipoPost[tmpltName]['parseStatus']
 		df_all[tmpltName]['command']		= datosEquipoPre[tmpltName]['command']
 
@@ -838,20 +882,21 @@ def constructExcel(df_final, count_dif, searchMajor, folderLog):
 		writer.sheets[sheet_name] = worksheet
 		dfData.to_excel(writer, sheet_name=sheet_name, startrow=0, startcol=0) #Creates Excel File
 		worksheet.write_url('A1', 'internal:index!A1', string='Index')
-		
-		if len(dfDiff) > 0:
-			### Changes Section
+
+		# Changes Section
+		if len(dfDiff) > 0 or output=='ambiguity':
 			srcCol   = 'A'+str(len(dfData)+5)
-			dstCol   = 'H'+str(len(dfData)+5)
+			dstCol   = 'J'+str(len(dfData)+5)
 			colRange = srcCol + ':' + dstCol
 			warnTex  = D_STATUS[output]['warnText']
 			worksheet.merge_range(colRange, warnTex, cell_format)
 			if len(dfDiff) > 0:
 				dfDiff.to_excel(writer, sheet_name=sheet_name, startrow=len(dfData)+6, startcol=0)
+		
+		# Major Error Section
 		if len(dfMajor) > 0:
-			### Major Error Section
 			srcCol   = 'A'+str((len(dfData)+(len(dfDiff)))+9)
-			dstCol   = 'H'+str((len(dfData)+(len(dfDiff)))+9)
+			dstCol   = 'J'+str((len(dfData)+(len(dfDiff)))+9)
 			colRange = srcCol + ':' + dstCol
 			errText   = warnTex  = D_STATUS[output]['errText']
 			worksheet.merge_range(colRange, errText, cell_format)
@@ -1073,7 +1118,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all','diff'], default='all', type=str, help='When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all)')
 	parser1.add_argument('-ga', '--genAtp',        type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.2.2' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.2.3' )
 
 	args               = parser1.parse_args()
 
