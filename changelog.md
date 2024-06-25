@@ -1,3 +1,7 @@
+[4.2.4 - 2024-06-25]
+- Updating `searchDiffAll` to better use `pd.compare`. 
+- The function `searchDiffOnly()` is no longer available.
+
 [4.2.3 - 2024-06-25]
 - Updating `searchDiffAll` and `searchDiffOnly`: adjustments for comparision.
     - When the template is not general, uses `pd.merge` to compare the data from pre and post dataFrames.

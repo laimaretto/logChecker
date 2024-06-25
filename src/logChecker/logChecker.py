@@ -580,6 +580,7 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 			dNoMatchedLog[routerLogKey]['name']	= dLog[routerLogKey]['name']	# for writeDfTemp
 
 	#Processing the no-matched commands
+
 	for idR, routerLogKey in enumerate(dNoMatchedLog.keys()):
 		# Basic information of the router, for writeDfTemp
 		routerName	= dLog[routerLogKey]['name']
@@ -637,6 +638,7 @@ def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 		filterCols	= dTmplt[template]['filterColumns']
 
 		if template != GENERAL_TEMPL:
+
 			dfUnion = pd.merge(datosEquipoPre[tmpltName]['dfResultDatos'], datosEquipoPost[tmpltName]['dfResultDatos'], how='outer', indicator='Where').drop_duplicates()
 			dfInter = dfUnion[dfUnion.Where=='both']
 			dfCompl = dfUnion[~(dfUnion.isin(dfInter))].dropna(axis=0, how='all').drop_duplicates()
@@ -645,16 +647,15 @@ def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 
 		elif (template == GENERAL_TEMPL) and (len(datosEquipoPre[tmpltName]['dfResultDatos']) == len(datosEquipoPost[tmpltName]['dfResultDatos'])):
 
-			dfCompl		= datosEquipoPre[tmpltName]['dfResultDatos'].compare(datosEquipoPost[tmpltName]['dfResultDatos'])
-			CompIdx		= dfCompl.index
-
-			dfCompPre	= datosEquipoPre[tmpltName]['dfResultDatos'].loc[CompIdx]
-			dfCompPost	= datosEquipoPost[tmpltName]['dfResultDatos'].loc[CompIdx]
-
-			dfCompPre['Where']	= 'Pre'
-			dfCompPost['Where']	= 'Post'
-
-			dfCompl = pd.concat([dfCompPre,dfCompPost])
+			dfCompl	= datosEquipoPre[tmpltName]['dfResultDatos'].compare(datosEquipoPost[tmpltName]['dfResultDatos'], 
+																 result_names=('pre','post'), 
+																 align_axis=0, 
+																 keep_equal=True,
+																 keep_shape=True).drop_duplicates(keep=False)
+			
+			dfCompl = dfCompl.reset_index()
+			
+			dfCompl = dfCompl.rename(columns={'level_1':'Where'}).drop(columns='level_0')
 
 		# When using general template and the dfs from pre and post are != in size, the comparision doesn't work 
 		# very well with the options above.
@@ -1116,9 +1117,9 @@ def main():
 	parser1.add_argument('-tf-post', '--templateFolderPost', type=str, default='', help='If set, use this folder of templates for POST logs.')
 	parser1.add_argument('-te', '--templateEngine', choices=['ttp','textFSM'], default='textFSM', type=str, help='Engine for parsing. Default=textFSM.')
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
-	parser1.add_argument('-sr', '--showResults',    choices=['all','diff'], default='all', type=str, help='When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all)')
+	parser1.add_argument('-sr', '--showResults',    choices=['all'], default='all', type=str, help='TO BE DEPRECATED. When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all.)')
 	parser1.add_argument('-ga', '--genAtp',        type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.2.3' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.2.4' )
 
 	args               = parser1.parse_args()
 
