@@ -652,7 +652,7 @@ def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 
 			rtrId   = RTR_ID[routerId][0] # This is so, because the key to identify the router can either be its name or IP; check what to do when routerId == 'both'
 
-			dfCompl = pd.DataFrame(columns=[rtrId,'Lines']) # We build an empty DF; the 'Lines' column is the only column of the GENERAL_TEMPLATE
+			dfCompl = pd.DataFrame(columns=datosEquipoPre[tmpltName]['dfResultDatos'].columns) # We build an empty DF. Works better when routerId == 'both'
 			
 			dfPre   = datosEquipoPre[tmpltName]['dfResultDatos']
 			dfPost  = datosEquipoPost[tmpltName]['dfResultDatos']
@@ -674,6 +674,7 @@ def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 
 		else:
 			datosEquipoPost[tmpltName]['parseStatus'] = 'ambiguity'
+			dfCompl = pd.DataFrame(columns=datosEquipoPre[tmpltName]['dfResultDatos'].columns)
 
 		orderedColums = RTR_ID[routerId] + filterCols
 
@@ -1133,7 +1134,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all'], default='all', type=str, help='TO BE DEPRECATED. When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all.)')
 	parser1.add_argument('-ga', '--genAtp',        type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.2.5' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.2.6' )
 
 	args               = parser1.parse_args()
 
