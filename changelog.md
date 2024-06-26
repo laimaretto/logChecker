@@ -1,3 +1,8 @@
+[4.2.5 - 2024-06-25]
+- Updating `searchDiffAll` to better use `pd.compare` when GENERIC_TEMPLATE is being used.
+- Global Variables `PRE` and `POST`.
+- `/environment no more` will not be parsed.
+
 [4.2.4 - 2024-06-25]
 - Updating `searchDiffAll` to better use `pd.compare`. 
 - The function `searchDiffOnly()` is no longer available.
