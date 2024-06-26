@@ -37,6 +37,9 @@ DATA_FLTR_COLS     = '#filterColumns:'
 DATA_FLTR_ACTN     = '#filterAction:'
 DATA_SHOW_DIFF_COL = '#showDiffColumns'
 
+PRE                = 'Pre'
+POST               = 'Post'
+
 INDEX_COL = {
 	'sheet' : {
 		'position': 0, 'col': 'A:A', 'colName': 'Sheet', 'width': 20,
@@ -105,7 +108,7 @@ D_STATUS = dict(
 	ambiguity = dict(
 		colorTab = '#40FFE8', #teal
 		warnText = "####### CAN'T COMPARE. PLEASE USE THE SPECIFIC TEMPLATE #######",
-		errText  = '####### MAJOR ERRORS DETECTED POST-TASK #######',
+		errText  = None,
 		shortText = "Can't compare: use specific template",
 	)
 )
@@ -120,7 +123,7 @@ Value Lines (.+)
 Start
   ^${Lines} -> Record"""
 
-NON_COMMAND_KEYS = ['name','ip','version','hwType','#FINSCRIPT','exit all','']
+NON_COMMAND_KEYS = ['name','ip','version','hwType','#FINSCRIPT','exit all','','/environment no more']
 
 def readTemplate(fileTemplate, templateFolder, templateEngine):
 	'''
@@ -144,12 +147,12 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 	d = {}
 
 	d[GENERAL_TEMPL] = {
-	'templateColumns':[],
-	'commandKey':'',
-	'majorDown':['down','dwn'], #En función findMajor, case=False. Aquí no es necesario tener 'Down' y 'Dwn'
-	'filterColumns':[],
-	'filterAction':None,
-	'showDiffColumns':[]
+		'templateColumns':[],
+		'commandKey':'',
+		'majorDown':['down','dwn'], #En función findMajor, case=False. Aquí no es necesario tener 'Down' y 'Dwn'
+		'filterColumns':[],
+		'filterAction':None,
+		'showDiffColumns':[]
 	}
 
 	templates.append(GENERAL_TEMPL)
@@ -614,7 +617,7 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 			routerLog = cmdsLogs + '\n' + datosCmdsLogs + '\n'
 
 			dfResult									 = makeParsed(GENERAL_TEMPL, routerLog, '', templateEngine, templateColumns)
-			datosEquipo[f'general_{i}']['dfResultDatos'] = writeDfTemp(dfResult, filterCols,routerId,routerName,routerIP, datosEquipo[f'general_{i}']['dfResultDatos'])
+			datosEquipo[f'general_{i}']['dfResultDatos'] = writeDfTemp(dfResult, filterCols, routerId, routerName, routerIP, datosEquipo[f'general_{i}']['dfResultDatos'])
 			datosEquipo[f'general_{i}']['parseStatus']	 = detParseStatus(datosCmdsLogs, datosEquipo[f'general_{i}']['dfResultDatos'])
 
 	return datosEquipo
@@ -624,7 +627,7 @@ def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 	Makes a new table, in which it brings the differences between two tables (post-pre)
 	'''
 
-	countDif   = {}
+	countDif = {}
 
 	for tmpltName in datosEquipoPre.keys():
 		if tmpltName not in countDif:
@@ -642,27 +645,38 @@ def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 			dfUnion = pd.merge(datosEquipoPre[tmpltName]['dfResultDatos'], datosEquipoPost[tmpltName]['dfResultDatos'], how='outer', indicator='Where').drop_duplicates()
 			dfInter = dfUnion[dfUnion.Where=='both']
 			dfCompl = dfUnion[~(dfUnion.isin(dfInter))].dropna(axis=0, how='all').drop_duplicates()
-			dfCompl['Where'] = dfCompl['Where'].str.replace('left_only','Pre')
-			dfCompl['Where'] = dfCompl['Where'].str.replace('right_only','Post')
+			dfCompl['Where'] = dfCompl['Where'].str.replace('left_only',PRE)
+			dfCompl['Where'] = dfCompl['Where'].str.replace('right_only',POST)
 
-		elif (template == GENERAL_TEMPL) and (len(datosEquipoPre[tmpltName]['dfResultDatos']) == len(datosEquipoPost[tmpltName]['dfResultDatos'])):
+		elif template == GENERAL_TEMPL and datosEquipoPre[tmpltName]['dfResultDatos'].shape == datosEquipoPost[tmpltName]['dfResultDatos'].shape:
 
-			dfCompl	= datosEquipoPre[tmpltName]['dfResultDatos'].compare(datosEquipoPost[tmpltName]['dfResultDatos'], 
-																 result_names=('pre','post'), 
-																 align_axis=0, 
-																 keep_equal=True,
-																 keep_shape=True).drop_duplicates(keep=False)
+			rtrId   = RTR_ID[routerId][0] # This is so, because the key to identify the router can either be its name or IP; check what to do when routerId == 'both'
+
+			dfCompl = pd.DataFrame(columns=[rtrId,'Lines']) # We build an empty DF; the 'Lines' column is the only column of the GENERAL_TEMPLATE
 			
-			dfCompl = dfCompl.reset_index()
-			
-			dfCompl = dfCompl.rename(columns={'level_1':'Where'}).drop(columns='level_0')
+			dfPre   = datosEquipoPre[tmpltName]['dfResultDatos']
+			dfPost  = datosEquipoPost[tmpltName]['dfResultDatos']
+
+			for rtrName in dfPre[rtrId].unique():
+
+				tempPre   = dfPre[dfPre[rtrId] == rtrName]
+				tempPost  = dfPost[dfPost[rtrId] == rtrName]
+
+				tempComp = tempPre.compare(tempPost, result_names=(PRE,POST), align_axis=0, keep_equal=True).reset_index()
+				tempComp = tempComp.rename(columns={'level_1':'Where'})
+				tempComp = tempComp.drop(columns='level_0')
+				
+				tempComp[rtrId] = rtrName
+				dfCompl = pd.concat([dfCompl,tempComp])
 
 		# When using general template and the dfs from pre and post are != in size, the comparision doesn't work 
 		# very well with the options above.
+
 		else:
 			datosEquipoPost[tmpltName]['parseStatus'] = 'ambiguity'
 
 		orderedColums = RTR_ID[routerId] + filterCols
+
 		countDif[tmpltName]['dfResultDatos'] = dfCompl.sort_values(by = orderedColums)
 
 	return countDif
@@ -698,8 +712,8 @@ def searchDiffOnly(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
 			dfCompPre	= datosEquipoPre[tmpltName]['dfResultDatos'].loc[CompIdx]
 			dfCompPost	= datosEquipoPost[tmpltName]['dfResultDatos'].loc[CompIdx]
 
-			dfCompPre['Where']	= 'Pre'
-			dfCompPost['Where']	= 'Post'
+			dfCompPre['Where']	= PRE
+			dfCompPost['Where']	= POST
 
 			dfMerge = pd.concat([dfCompPre,dfCompPost])
 
@@ -767,7 +781,7 @@ def findMajor(count_dif, dTmplt, routerId, showResults, datosEquipoPre):
 		if tmpltName not in countDown:
 			countDown[tmpltName] = {}
 
-		df         = pd.DataFrame()
+		df = pd.DataFrame()
 		template = datosEquipoPre[tmpltName]['template']
 
 		for majorWord in dTmplt[template]['majorDown']:
@@ -776,7 +790,7 @@ def findMajor(count_dif, dTmplt, routerId, showResults, datosEquipoPre):
 
 			if 'Where' in count_dif[tmpltName]['dfResultDatos'].columns:
 
-				df1 = count_dif[tmpltName]['dfResultDatos'][count_dif[tmpltName]['dfResultDatos']['Where']=='Post']
+				df1 = count_dif[tmpltName]['dfResultDatos'][count_dif[tmpltName]['dfResultDatos']['Where']==POST]
 				
 				if len(df1) > 0:
 					df1 = df1[df1.apply(lambda r: r.str.contains(majorWord, case=False).any(), axis=1)]
@@ -1119,7 +1133,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all'], default='all', type=str, help='TO BE DEPRECATED. When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all.)')
 	parser1.add_argument('-ga', '--genAtp',        type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.2.4' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.2.5' )
 
 	args               = parser1.parse_args()
 
