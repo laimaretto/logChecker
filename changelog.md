@@ -1,3 +1,6 @@
+[4.2.6 - 2024-06-26]
+- Updating `searchDiffAll`, when using general templates with different shape, creating a `dfCompl`.
+
 [4.2.5 - 2024-06-25]
 - Updating `searchDiffAll` to better use `pd.compare` when GENERIC_TEMPLATE is being used.
 - Global Variables `PRE` and `POST`.
