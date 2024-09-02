@@ -515,6 +515,7 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 		#For each command in command_keys(list)
 		for cmdsLogs in command_keys: 
 			datosCmdsLogs = dLog[routerLogKey][cmdsLogs] #Logs obtained for each command
+			matched_templates = []
 
 			#For each template, we test the match with command, 
 			for idT, tmpltName in enumerate(dTmpl.keys()):
@@ -529,7 +530,11 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 				if match and (tmpltName != GENERAL_TEMPL):
 					# If there's a match, we take that command off the list noMatchedCmdPerRtr
 					# Important for processing cases that use generic template
-					noMatchedCmdPerRtr.remove(cmdsLogs)
+					matched_templates.append(tmpltName)
+					if cmdsLogs in noMatchedCmdPerRtr:
+						noMatchedCmdPerRtr.remove(cmdsLogs)
+						
+			for tmpltName in matched_templates:
 					
 					# if command(in template) == command(in key of router) then we stores log info in routeLog variable
 					# Means that the command was executed and there's a template to this command
