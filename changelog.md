@@ -1,3 +1,6 @@
+[4.3.1 - 2024-09-02]
+- Update version (-v)
+
 [4.3.0 - 2024-09-02]
 - Introduced `matched_templates` list to accumulate matching templates during execution.
 - Adjusted the logic for removing commands from `noMatchedCmdPerRtr` to ensure removal only occurs when applicable.
