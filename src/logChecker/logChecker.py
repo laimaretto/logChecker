@@ -60,14 +60,14 @@ RTR_ID = dict(
 
 CELL_COLOR = 'black'
 CELL_FONT_SIZE = '12'
-NO_MATCH = ['No matching entries found','No Matching Entries Found']
+NO_MATCH = '[N|n]o [M|m]atching [E|e]ntries( [F|f]ound)?'
 
 D_STATUS = dict(
 	no_parsing = dict( #Hay comando, no parsing
 		colorTab = '#4092FF', #blue
 		warnText = '####### CHANGES DETECTED #######',
 		errText  = '####### NO Parsing Detected #######',
-		shortText = "Can't Parsing",
+		shortText = "Can't Parse",
 		),
 	no_matching_entries = dict(
 		colorTab = '#CCCCCC', #gray
@@ -453,7 +453,7 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 
 		parseStatus = 'no_template'
 		if len(datosCmdsLogs) > 0 and len(dfTemp) == 0:
-			if any(no_match in datosCmdsLogs for no_match in NO_MATCH):
+			if re.search(NO_MATCH, datosCmdsLogs):
 				parseStatus = 'no_matching_entries'
 			else:
 				parseStatus = 'no_parsing'
@@ -1139,7 +1139,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all'], default='all', type=str, help='TO BE DEPRECATED. When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all.)')
 	parser1.add_argument('-ga', '--genAtp',        type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.3.1' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.3.2' )
 
 	args               = parser1.parse_args()
 
