@@ -67,7 +67,7 @@ D_STATUS = dict(
 		colorTab = '#4092FF', #blue
 		warnText = '####### CHANGES DETECTED #######',
 		errText  = '####### NO Parsing Detected #######',
-		shortText = "Can't Parsing",
+		shortText = "Can't Parse",
 		),
 	no_matching_entries = dict(
 		colorTab = '#CCCCCC', #gray

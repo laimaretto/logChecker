@@ -1,6 +1,7 @@
 [4.3.2 - 2024-09-03]
-- Update `NO_MATCH`
+- Update `NO_MATCH`.
 - Update the function detParseStatus to use Regex for identifying `No Matching Entries Found`.
+- Update the `no_parsing` in `D_STATUS` from `Can't Parsing` to `Can't Parse`.
 
 [4.3.1 - 2024-09-03]
 - Update version (-v)
