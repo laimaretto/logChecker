@@ -1,3 +1,6 @@
+[4.3.3 - 2024-09-04]
+- New function `mixAll()` in order to clean up the code.
+
 [4.3.2 - 2024-09-03]
 - Update `NO_MATCH`.
 - Update the function detParseStatus to use Regex for identifying `No Matching Entries Found`.
