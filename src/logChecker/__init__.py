@@ -1,2 +1,2 @@
-__version__ = "3.7.2"
-__author__ = 'Lucas Aimaretto'
+__version__ = "4.3.3"
+__author__ = 'Lucas Aimaretto, Beatriz Bonafe, Kathleen Mendonca'

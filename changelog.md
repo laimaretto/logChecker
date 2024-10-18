@@ -1,3 +1,75 @@
+[4.3.3 - 2024-09-04]
+- New function `mixAll()` in order to clean up the code.
+
+[4.3.2 - 2024-09-03]
+- Update `NO_MATCH`.
+- Update the function detParseStatus to use Regex for identifying `No Matching Entries Found`.
+- Update the `no_parsing` in `D_STATUS` from `Can't Parsing` to `Can't Parse`.
+
+[4.3.1 - 2024-09-03]
+- Update version (-v)
+
+[4.3.0 - 2024-09-02]
+- Introduced `matched_templates` list to accumulate matching templates during execution.
+- Adjusted the logic for removing commands from `noMatchedCmdPerRtr` to ensure removal only occurs when applicable.
+- Added a processing step to iterate over `matched_templates`, ensuring all matched templates are correctly handled.
+
+[4.2.6 - 2024-06-26]
+- Updating `searchDiffAll`, when using general templates with different shape, creating a `dfCompl`.
+
+[4.2.5 - 2024-06-25]
+- Updating `searchDiffAll` to better use `pd.compare` when GENERIC_TEMPLATE is being used.
+- Global Variables `PRE` and `POST`.
+- `/environment no more` will not be parsed.
+
+[4.2.4 - 2024-06-25]
+- Updating `searchDiffAll` to better use `pd.compare`. 
+- The function `searchDiffOnly()` is no longer available.
+
+[4.2.3 - 2024-06-25]
+- Updating `searchDiffAll` and `searchDiffOnly`: adjustments for comparision.
+    - When the template is not general, uses `pd.merge` to compare the data from pre and post dataFrames.
+    - If it's general template with the same length for pre and post dataFrames, uses `compare` from `pandas`.
+    - When using general template and the dataFrames don't have the same size, the comparision should be done by specific template.
+- New `parseStatus` for when its necessary to use specific template.
+
+[4.2.2 - 2024-06-14]
+- Updating `parseResults`, fix bug with multiple routers with `general.template`:
+    - Add: `dNoMatchedLog`, to save information of no-matched commands in new dictionary, with the same structure of dLog.
+    - Add: `noMatchedCmdAllRtr` - To save all no-matched commands, independently of router
+    - Changed: `noMatchedCommand` to `noMatchedCmdPerRtr`
+    - New for loop to interact with `dNoMatchedLog`, where the `general.template` is used.
+
+[4.2.1 - 2024-06-12]
+- Moving `general.template` inside setup.py, then it was necessary to update:
+    - `readTemplate`: to read this template correclty;
+    - `makeParsed`: importing `io` to use in a condition, for `results_template` to work with this general template;
+- `writeDfTemp`: parameter optimization.
+
+[4.2.0 - 2024-06-11]
+- Updating of `parseResults`, changing the order of 'for's: for each command, all templates are tested in `match = prog.search(cmdsLogs)`. In this way, the existence of command log determines the presence of the data in the excel sheet. In previous versions we used the reverse order, so to have data in excel, it was necessary to have the specific template to parse.
+- New: Generic template.
+    - If a command/log don't match with any template available in the specified folder with templates, the parsing is done with `general.template`, available in src. Add structure in `readTemplate`, `parseResults`;
+    - As many sheets as needed can be created by generic template;
+- `parseResults` with new functions `detParseStatus` and `writeDfTemp`;
+- `datosEquipo[tmpltName]['template']` in `datosEquipo[tmpltName]`, to better identification in cases with generic template, when this key is related to `dTmplt`. For example, in `searchDiffAll`, `searchDiffOnly`, `findMajor`;
+- Index: for better identification, column `Command` added. 
+
+
+[4.1.0 - 2024-04-10]
+
+- New structure for `datosEquipo[tmpltName]`. Now with `datosEquipo[tmpltName]['parseStatus']` and `datosEquipo[tmpltName]['dfResultDatos']`. Created for better detection of the new statuses of parsing. They specify "no parsing" cases;
+- Removed changes section and major error section in exported sheets, when these sections are empty;
+- More constants indicated in the beginning of the code and add descriptions in some functions.
+
+[4.0.1 - 2024-03-20]
+
+- Update of libs:
+    - textfsm==1.1.3
+    - pandas>=1.5.2,<=2.0.3
+    - XlsxWriter>=3.0.3,<=3.2.0
+    - ttp>=0.9.0,<=0.9.5
+
 [3.7.2 - 2023-07-04]
 
 - Update of lib `textFSM` to 1.1.3.
