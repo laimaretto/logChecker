@@ -1,3 +1,10 @@
+[4.4.0 - 2024-10-18]
+- Creation of `diff_colors`, within `constructExcel`.
+    - Equivalent lines (pre-post pair) are compared, and the cells that have different values are highlighted in red. 
+    - Borders were added to the line pairs to make it easier to immediately identify which line corresponds to the "pre" and its "paired" post line.
+- Added the option to create #Keys in the templates to activate the `diff_colors` function in the "changes detected" table. 
+    - `ValueKeys` was added to the default template.
+
 [4.3.3 - 2024-09-04]
 - New function `mixAll()` in order to clean up the code.
 
