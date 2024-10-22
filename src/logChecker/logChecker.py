@@ -931,7 +931,6 @@ def constructExcel(df_final, count_dif, searchMajor, folderLog):
 
 		dfData  = df_final[template]['dfResultDatos']
 		dfDiff  = count_dif[template]['dfResultDatos'].reset_index(drop=True)
-		valueKeys = count_dif[template]['valueKeys']
 		dfMajor = searchMajor[template]['dfResultDatos']
 		dfParseStatus = df_final[template]['parseStatus']
 
@@ -984,6 +983,7 @@ def constructExcel(df_final, count_dif, searchMajor, folderLog):
 			worksheet.merge_range(colRange, warnTex, cell_format)
 
 			if len(dfDiff) > 0:
+				valueKeys = count_dif[template]['valueKeys']
 				dfDiff.to_excel(writer, sheet_name=sheet_name, startrow=len(dfData)+6, startcol=0)
 				start_row = len(dfData) + 7
 				end_col = len(dfDiff.columns)
@@ -1216,7 +1216,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all'], default='all', type=str, help='TO BE DEPRECATED. When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all.)')
 	parser1.add_argument('-ga', '--genAtp',         type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.4.0' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.4.1' )
 
 	args = parser1.parse_args()
 
