@@ -1,3 +1,26 @@
+[4.4.0 - 2024-10-18]
+- Creation of `diff_colors`, within `constructExcel`.
+    - Equivalent lines (pre-post pair) are compared, and the cells that have different values are highlighted in red. 
+    - Borders were added to the line pairs to make it easier to immediately identify which line corresponds to the "pre" and its "paired" post line.
+- Added the option to create #Keys in the templates to activate the `diff_colors` function in the "changes detected" table. 
+    - `ValueKeys` was added to the default template.
+
+[4.3.3 - 2024-09-04]
+- New function `mixAll()` in order to clean up the code.
+
+[4.3.2 - 2024-09-03]
+- Update `NO_MATCH`.
+- Update the function detParseStatus to use Regex for identifying `No Matching Entries Found`.
+- Update the `no_parsing` in `D_STATUS` from `Can't Parsing` to `Can't Parse`.
+
+[4.3.1 - 2024-09-03]
+- Update version (-v)
+
+[4.3.0 - 2024-09-02]
+- Introduced `matched_templates` list to accumulate matching templates during execution.
+- Adjusted the logic for removing commands from `noMatchedCmdPerRtr` to ensure removal only occurs when applicable.
+- Added a processing step to iterate over `matched_templates`, ensuring all matched templates are correctly handled.
+
 [4.2.6 - 2024-06-26]
 - Updating `searchDiffAll`, when using general templates with different shape, creating a `dfCompl`.
 
