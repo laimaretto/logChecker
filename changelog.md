@@ -1,3 +1,6 @@
+[4.4.1 - 2024-10-22]
+- Fix bug for assessment (only using -pre)
+
 [4.4.0 - 2024-10-18]
 - Creation of `diff_colors`, within `constructExcel`.
     - Equivalent lines (pre-post pair) are compared, and the cells that have different values are highlighted in red. 
