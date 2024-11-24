@@ -1,3 +1,10 @@
+[4.5.0 - 2024-11-22]
+- New parameter `ic` with default = no. If `ic` = yes, when running pre-post comparision, a new column `Idx Pre/Post` is added in the tables changes detected and major errors for specific templates, relating with the index from pre-post table. For generic templates, the column `Idx Pre/Post` is added regardless of the parameter `ic`.
+- Changes in `searchDiffAll`:
+    - For specific template: New function `obtain_idx_pre_post` to create new column in `dfCompl`. `obtain_idx_pre_post` detects the matching index from `dfPre` (when `Where` column equal to `left_only`) or `dfPost` (when `Where` equal to `right_only`);
+    - For `general.template`: `tempComp` `level_0` renamed to `Idx Pre/Post`.
+- `findMajor`: `reset_index` to maintain the standard with the other tables (pre-post side by side and changes detected).
+
 [4.4.1 - 2024-10-22]
 - Fix bug for assessment (only using -pre)
 
