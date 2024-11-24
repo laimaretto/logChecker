@@ -1,3 +1,7 @@
+[4.5.2 - 2024-11-24]
+
+- When reading the parsgin textFSM templates, whenever a variable is identified as `Required` or `Filldown`, we consider such variable as a key column to color-identify it when looking for differences.
+
 [4.5.0 - 2024-11-22]
 - New parameter `ic` with default = no. If `ic` = yes, when running pre-post comparision, a new column `Idx Pre/Post` is added in the tables changes detected and major errors for specific templates, relating with the index from pre-post table. For generic templates, the column `Idx Pre/Post` is added regardless of the parameter `ic`.
 - Changes in `searchDiffAll`:
