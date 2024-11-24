@@ -40,6 +40,7 @@ DATA_VALUE_KEY     = '#Keys:'
 
 PRE                = 'Pre'
 POST               = 'Post'
+IDX_PRE_POST       = 'Idx Pre/Post'
 
 INDEX_COL = {
 	'sheet' : {
@@ -637,59 +638,81 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 
 	return datosEquipo
 
-def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
+def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId, idxComp):
 	'''
 	Makes a new table, in which it brings the differences between two tables (post-pre)
 	'''
 
 	countDif = {}
 
+	def obtain_idx_pre_post(dfCompl,df_pre_post, where):
+		'''
+		To create new column in dfCompl. Detects the matching index from dfPre or dfPost, for each row.
+		'''
+
+		df_pre_post.insert(len(df_pre_post.columns), IDX_PRE_POST, df_pre_post.index) #To get the index in column 'index'
+		dfCompl_m = dfCompl[dfCompl['Where'] == where].drop(columns=['Where']) #This column is not in df_pre_post
+		df_merged = pd.merge(dfCompl_m,df_pre_post,how='left',on=dfCompl_m.columns.tolist())
+		
+		if where == 'left_only':
+			df_merged.insert(len(df_merged.columns)-1,'Where',PRE)
+		else:
+			df_merged.insert(len(df_merged.columns)-1,'Where',POST)
+
+		return df_merged
+
 	for tmpltName in datosEquipoPre.keys():
 		if tmpltName not in countDif:
 			countDif[tmpltName] = {}
 
-		# En datosEquipoPre[tmpltName], tmpltName puede ser generic_0 y esa key no existe en lo dict de templates (dTmplt).
-		# Por eso que es necessario gravar el template en datosEquipoPre[tmpltName]['template'], para entonces relacionar ese
-		# valor con el dTmplt[template] (en los ejemplos de template generico, template == 'generic.template')
+		# In datosEquipoPre[tmpltName], tmpltName can be generic_0 and that key does not exist in the templates dictionary (dTmplt).
+		# That is why it is necessary to store the template in datosEquipoPre[tmpltName]['template'], so that it can then be related
+		# to dTmplt[template] (in the examples of the generic template, template == 'generic.template').
 
 		template	= datosEquipoPre[tmpltName]['template']
 		filterCols	= dTmplt[template]['filterColumns']
+		dfPre       = datosEquipoPre[tmpltName]['dfResultDatos'].reset_index(drop=True)
+		dfPost      = datosEquipoPost[tmpltName]['dfResultDatos'].reset_index(drop=True)
 
 		if template != GENERAL_TEMPL:
 
-			dfUnion = pd.merge(datosEquipoPre[tmpltName]['dfResultDatos'], datosEquipoPost[tmpltName]['dfResultDatos'], how='outer', indicator='Where').drop_duplicates()
+			dfUnion = pd.merge(dfPre, dfPost, how='outer', indicator='Where').drop_duplicates()
 			dfInter = dfUnion[dfUnion.Where=='both']
 			dfCompl = dfUnion[~(dfUnion.isin(dfInter))].dropna(axis=0, how='all').drop_duplicates()
-			dfCompl['Where'] = dfCompl['Where'].str.replace('left_only',PRE)
-			dfCompl['Where'] = dfCompl['Where'].str.replace('right_only',POST)
 
-		elif template == GENERAL_TEMPL and datosEquipoPre[tmpltName]['dfResultDatos'].shape == datosEquipoPost[tmpltName]['dfResultDatos'].shape:
+			if len(dfCompl) > 0 and idxComp == True: #Add index from pre-post table
+
+				dfComplPre = obtain_idx_pre_post(dfCompl,dfPre,'left_only')
+				dfComplPost = obtain_idx_pre_post(dfCompl,dfPost,'right_only')
+				dfCompl = pd.concat([dfComplPre,dfComplPost],ignore_index=True)
+			else:
+				dfCompl['Where'] = dfCompl['Where'].str.replace('left_only',PRE)
+				dfCompl['Where'] = dfCompl['Where'].str.replace('right_only',POST)
+
+		elif template == GENERAL_TEMPL and dfPre.shape == dfPost.shape:
 
 			rtrId   = RTR_ID[routerId][0] # This is so, because the key to identify the router can either be its name or IP; check what to do when routerId == 'both'
 
-			dfCompl = pd.DataFrame(columns=datosEquipoPre[tmpltName]['dfResultDatos'].columns) # We build an empty DF. Works better when routerId == 'both'
-			
-			dfPre   = datosEquipoPre[tmpltName]['dfResultDatos']
-			dfPost  = datosEquipoPost[tmpltName]['dfResultDatos']
+			dfCompl = pd.DataFrame(columns=dfPre.columns) # We build an empty DF. Works better when routerId == 'both'
 
 			for rtrName in dfPre[rtrId].unique():
-
+				
 				tempPre   = dfPre[dfPre[rtrId] == rtrName]
 				tempPost  = dfPost[dfPost[rtrId] == rtrName]
-
-				tempComp = tempPre.compare(tempPost, result_names=(PRE,POST), align_axis=0, keep_equal=True).reset_index()
-				tempComp = tempComp.rename(columns={'level_1':'Where'})
-				tempComp = tempComp.drop(columns='level_0')
-				
+				tempComp = tempPre.compare(tempPost, result_names=(PRE,POST), align_axis=0, keep_equal=True).reset_index() #Reset index to remove multiindex
+				tempComp = tempComp.rename(columns={'level_1':'Where','level_0':IDX_PRE_POST})
 				tempComp[rtrId] = rtrName
 				dfCompl = pd.concat([dfCompl,tempComp])
+			
+			#Maintaining the standard with the results from specific template
+			dfCompl = dfCompl.reindex(columns=[col for col in dfCompl.columns if col != IDX_PRE_POST] + [IDX_PRE_POST])
 
 		# When using general template and the dfs from pre and post are != in size, the comparision doesn't work 
 		# very well with the options above.
 
 		else:
 			datosEquipoPost[tmpltName]['parseStatus'] = 'ambiguity'
-			dfCompl = pd.DataFrame(columns=datosEquipoPre[tmpltName]['dfResultDatos'].columns)
+			dfCompl = pd.DataFrame(columns=dfPre.columns)
 
 		orderedColums = RTR_ID[routerId] + filterCols
 
@@ -819,6 +842,7 @@ def findMajor(count_dif, dTmplt, routerId, showResults, datosEquipoPre):
 				if showResults == 'all':
 					df = df.sort_values(by = RTR_ID[routerId] + filterCols)
 
+		df = df.reset_index(drop=True)
 		countDown[tmpltName]['dfResultDatos'] = df
 
 	return countDown
@@ -881,7 +905,7 @@ def constructExcel(df_final, count_dif, searchMajor, folderLog):
 
 				if second_pair is not None:
 					for col in dfDiff.columns:
-						if col != 'Where' and first_pair[col] != second_pair[col]:
+						if (col not in ['Where', IDX_PRE_POST]) and first_pair[col] != second_pair[col]:
 							col_idx = dfDiff.columns.get_loc(col)
 
 							worksheet.conditional_format( #Coloring
@@ -1119,6 +1143,7 @@ def fncRun(dictParam):
 	routerId           = dictParam['routerId']
 	showResults        = dictParam['showResults']
 	genAtp             = dictParam['genAtp']
+	idxComp             = dictParam['idxComp']
 
 	if _platform == "win64" or _platform == "win32":
 		templateFolder = templateFolder.replace('/', '\\')
@@ -1186,7 +1211,7 @@ def fncRun(dictParam):
 		datosEquipoPost = parseResults(dTmpltPost, dLogPost, templateFolderPost, templateEngine, routerId)
 
 		if showResults == 'all':
-			count_dif       = searchDiffAll(datosEquipoPre, datosEquipoPost, dTmpltPre, routerId)
+			count_dif       = searchDiffAll(datosEquipoPre, datosEquipoPost, dTmpltPre, routerId, idxComp)
 		else:
 			count_dif       = searchDiffOnly(datosEquipoPre, datosEquipoPost, dTmpltPre, routerId)
 
@@ -1216,7 +1241,8 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all'], default='all', type=str, help='TO BE DEPRECATED. When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all.)')
 	parser1.add_argument('-ga', '--genAtp',         type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.4.1' )
+	parser1.add_argument('-ic','--idxComp',       type=str, default= 'no', choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=yes')
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.0' )
 
 	args = parser1.parse_args()
 
@@ -1231,6 +1257,7 @@ def main():
 		routerId           = args.routerId,
 		showResults        = args.showResults,
 		genAtp             = True if args.genAtp == 'yes' else False,
+		idxComp            = True if args.idxComp == 'yes' else False,
 	)
 
 	if dictParam['showResults'] == 'diff' and dictParam['routerId'] != 'name':
