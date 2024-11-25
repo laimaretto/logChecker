@@ -201,6 +201,8 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 					# We identify here the variables
 					col = line.split(' ')[-2]
 					d[tmpltName]['templateColumns'].append(col)
+					if 'Required' in line or 'Filldown' in line:
+						d[tmpltName]['valueKeys'].append(col)
 				
 				if h2 != -1:
 					# Here we identify the command
@@ -237,14 +239,6 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 						if key not in [None, '', ' ']:
 							key = key.lstrip().rstrip()
 							d[tmpltName]['showDiffColumns'].append(key)
-
-				if h7 != -1:
-					#We identify the keys
-					line = line.replace(DATA_VALUE_KEY + ' ', DATA_VALUE_KEY)
-					keys = line.split(':')[1].strip('\n').split(',')
-					for key in keys:
-						if key not in [None, '', ' ']:
-							d[tmpltName]['valueKeys'].append(key)
 
 			if templateEngine == 'ttp':
 
@@ -1241,8 +1235,8 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-sr', '--showResults',    choices=['all'], default='all', type=str, help='TO BE DEPRECATED. When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all.)')
 	parser1.add_argument('-ga', '--genAtp',         type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-ic','--idxComp',       type=str, default= 'no', choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=yes')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.0' )
+	parser1.add_argument('-ic','--idxComp',       type=str, default= 'no', choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=no')
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.2' )
 
 	args = parser1.parse_args()
 
