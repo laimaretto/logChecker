@@ -23,6 +23,7 @@ import re
 from ttp import ttp
 import os
 import io
+import time
 
 import docx
 from docx.enum.style import WD_STYLE_TYPE
@@ -35,8 +36,6 @@ DATA_COMMAND       = '#Command:'
 DATA_MAJOR_DWN     = '#majorDown:'
 DATA_FLTR_COLS     = '#filterColumns:'
 DATA_FLTR_ACTN     = '#filterAction:'
-DATA_SHOW_DIFF_COL = '#showDiffColumns'
-DATA_VALUE_KEY     = '#Keys:'
 
 PRE                = 'Pre'
 POST               = 'Post'
@@ -119,9 +118,7 @@ GENERAL_TEMPL = 'general.template'
 
 GENERAL_TEMPL_LINES = """#Command: .+
 #Timos: any
-#Version: 1.0.0
-#Keys: Lines
-Value Lines (.+)
+Value Required Lines (.+)
 
 Start
   ^${Lines} -> Record"""
@@ -155,7 +152,6 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 		'majorDown':['down','dwn'], #En función findMajor, case=False. Aquí no es necesario tener 'Down' y 'Dwn'
 		'filterColumns':[],
 		'filterAction':None,
-		'showDiffColumns':[],
 		'valueKeys':["Lines"]
 	}
 
@@ -169,7 +165,6 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 			'majorDown':['down','dwn'], #En función findMajor, case=False. Aquí no es necesario tener 'Down' y 'Dwn'
 			'filterColumns':[],
 			'filterAction':None,
-			'showDiffColumns':[],
 			'valueKeys':[]
 		}
 
@@ -194,14 +189,12 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 				h3 = line.find(DATA_MAJOR_DWN)
 				h4 = line.find(DATA_FLTR_COLS)
 				h5 = line.find(DATA_FLTR_ACTN)
-				h6 = line.find(DATA_SHOW_DIFF_COL)
-				h7 = line.find(DATA_VALUE_KEY)
 				
 				if h1 != -1:
 					# We identify here the variables
 					col = line.split(' ')[-2]
 					d[tmpltName]['templateColumns'].append(col)
-					if 'Required' in line or 'Filldown' in line:
+					if 'Required' in line or 'Filldown' in line or 'Key' in line:
 						d[tmpltName]['valueKeys'].append(col)
 				
 				if h2 != -1:
@@ -230,15 +223,6 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 					line = line.replace(DATA_FLTR_ACTN + ' ', DATA_FLTR_ACTN)
 					action = line.split(':')[1].strip('\n')
 					d[tmpltName]['filterAction'] = action
-
-				if h6 != -1:
-					# we identify which column to add when showing only the differences
-					line = line.lstrip().strip('\n')
-					keys = line.split(':')[1].strip('\n').split(',')
-					for key in keys:
-						if key not in [None, '', ' ']:
-							key = key.lstrip().rstrip()
-							d[tmpltName]['showDiffColumns'].append(key)
 
 			if templateEngine == 'ttp':
 
@@ -310,37 +294,13 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 				x = [col for col in d[tmpltName]['templateColumns'] if col not in d[tmpltName]['filterColumns']]
 				d[tmpltName]['filterColumns'] = x
 
+			# Only keeps valueKeys columns that are in filterColumns
+			d[tmpltName]['valueKeys'] = [col for col in d[tmpltName]['valueKeys'] if col in d[tmpltName]['filterColumns']]
+
 		else:
 			# if no filtering columns are defined, we assign those by the original
 			# template columns
 			d[tmpltName]['filterColumns'] = d[tmpltName]['templateColumns'].copy()
-
-		# We now analyze for showing diff-case columns
-		if len(d[tmpltName]['showDiffColumns']) > 0:
-
-			print(f'The template {tmpltName} has the following columns to be shown when displaying diff-results:')
-			print(f'columns: {d[tmpltName]["showDiffColumns"]}')
-
-			# checking column's names
-			x = [col for col in d[tmpltName]['showDiffColumns'] if col not in d[tmpltName]['templateColumns']]
-			if len(x) > 0:
-				print(f'There are some columns which are not original variables of the template.')
-				print(x)
-				print(f'Check the variables names. Quitting...')
-				quit()
-			
-			# If we are filtering columns in the original DataFrame
-			# we must be sure that our show-diff columns are not being filtered out...
-			if len(d[tmpltName]['filterColumns']) > 0:
-				
-				diffCols = [x for x in d[tmpltName]['showDiffColumns'] if x not in d[tmpltName]['filterColumns']]
-				if len(diffCols) > 0:
-					print(f'The template {tmpltName} has the following filtered columns:')
-					print(f'{d[tmpltName]["filterAction"]} {d[tmpltName]["filterColumns"]}')
-					print(f'The columns you want to use for displaying results are not conisdered inside the filter.')
-					print(d[tmpltName]['showDiffColumns'])
-					print(f'Quitting...')
-					quit()
 
 	print(f'##### Successfully Loaded Templates from folder {templateFolder} #####')
 	return d
@@ -715,95 +675,7 @@ def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId, idxComp):
 
 	return countDif
 
-def searchDiffOnly(datosEquipoPre, datosEquipoPost, dTmplt, routerId):
-	'''
-	Makes a new table, in which it brings just the differences between two tables (post-pre)
-	'''
-
-	countDif   = {}
-
-	for tmpltName in datosEquipoPre.keys():
-		if tmpltName not in countDif:
-			countDif[tmpltName] = {}
-
-		template = datosEquipoPre[tmpltName]['template']
-		filterCols = dTmplt[template]['showDiffColumns']
-
-		dfPre  = datosEquipoPre[tmpltName]['dfResultDatos']
-		dfPost = datosEquipoPost[tmpltName]['dfResultDatos']
-
-		if template != GENERAL_TEMPL:
-			dfMerge = pd.merge(dfPre,dfPost, suffixes=('_pre','_post'), how='outer', indicator='Where')
-			dfMerge['Where'] = dfMerge['Where'].str.replace('left_only','Pre')
-			dfMerge['Where'] = dfMerge['Where'].str.replace('right_only','Post')
-			dfMerge          = dfMerge[dfMerge['Where'].isin(['Pre','Post'])]
-		
-		elif (template == GENERAL_TEMPL) and (len(datosEquipoPre[tmpltName]['dfResultDatos']) == len(datosEquipoPost[tmpltName]['dfResultDatos'])):
-
-			dfCompl		= datosEquipoPre[tmpltName]['dfResultDatos'].compare(datosEquipoPost[tmpltName]['dfResultDatos'])
-			CompIdx		= dfCompl.index
-
-			dfCompPre	= datosEquipoPre[tmpltName]['dfResultDatos'].loc[CompIdx]
-			dfCompPost	= datosEquipoPost[tmpltName]['dfResultDatos'].loc[CompIdx]
-
-			dfCompPre['Where']	= PRE
-			dfCompPost['Where']	= POST
-
-			dfMerge = pd.concat([dfCompPre,dfCompPost])
-
-		else:
-			datosEquipoPost[tmpltName]['parseStatus'] = 'ambiguity'
-			dfMerge = pd.concat([dfCompPre,dfCompPost])
-
-		dfMerge_new  = pd.DataFrame()
-
-		for router in dfMerge['NAME'].unique():
-
-			dfRouter = pd.DataFrame()
-
-			tempMerge = dfMerge[dfMerge['NAME']==router]
-
-			if len(tempMerge) > 1:
-				tempMerge = tempMerge.loc[:,tempMerge.nunique() > 1]
-				tempMerge['NAME'] = router
-
-			dfRouter = pd.concat([dfRouter,tempMerge])
-
-			routerCols   = list(dfRouter.columns)
-			dfRouter     = pd.merge(dfRouter,dfMerge, on=routerCols)
-			hasFilterCol = len([x for x in routerCols if x in filterCols])
-
-			if hasFilterCol == 0:
-				dfRouter   = dfRouter[routerCols + filterCols]
-			else:
-				dfRouter   = dfRouter[routerCols]
-
-			dfMerge_new = pd.concat([dfMerge_new,dfRouter])
-
-		dfMerge_new.reset_index(inplace=True)
-		dfMerge_new = dfMerge_new.drop(columns='index')
-
-		if len(dfMerge_new) > 0:
-
-			finalColumns = list(dfMerge_new.columns)
-			finalColumns.remove('NAME')
-			finalColumns.remove('Where')
-
-			if len(filterCols) > 0:
-				[finalColumns.remove(x) for x in filterCols]
-				finalColumns = ['NAME'] + filterCols + finalColumns + ['Where']
-			else:
-				finalColumns = ['NAME'] + finalColumns + ['Where']
-
-			dfMerge_new         = dfMerge_new[finalColumns]
-			countDif[tmpltName]['dfResultDatos'] = dfMerge_new.sort_values(by = finalColumns)
-		else:
-			countDif[tmpltName]['dfResultDatos'] = dfMerge_new
-
-	return countDif
-
-
-def findMajor(count_dif, dTmplt, routerId, showResults, datosEquipoPre):
+def findMajor(count_dif, dTmplt, routerId, datosEquipoPre):
 	'''
 	Makes a table from the results of searching for Major errors in the post table define in yml file for specific template,\n
 	or down if is not define the words for the template, which are not in the Pre table
@@ -833,8 +705,7 @@ def findMajor(count_dif, dTmplt, routerId, showResults, datosEquipoPre):
 
 				df = pd.concat([df, df1])
 
-				if showResults == 'all':
-					df = df.sort_values(by = RTR_ID[routerId] + filterCols)
+				df = df.sort_values(by = RTR_ID[routerId] + filterCols)
 
 		df = df.reset_index(drop=True)
 		countDown[tmpltName]['dfResultDatos'] = df
@@ -1135,7 +1006,6 @@ def fncRun(dictParam):
 	templateEngine     = dictParam['templateEngine']
 	templateFolderPost = dictParam['templateFolderPost']
 	routerId           = dictParam['routerId']
-	showResults        = dictParam['showResults']
 	genAtp             = dictParam['genAtp']
 	idxComp             = dictParam['idxComp']
 
@@ -1178,38 +1048,16 @@ def fncRun(dictParam):
 		else:
 			dTmpltPre  = readTemplate(csvTemplate, templateFolder, templateEngine)
 			dTmpltPost = readTemplate(csvTemplate, templateFolderPost, templateEngine)
-			keysPre    = sorted(list(dTmpltPre.keys()))
-			keysPos    = sorted(list(dTmpltPost.keys()))
-
-			if keysPre == keysPos:
-				pass
-			# else:
-			# 	if csvTemplate == '':
-			# 		if len(keysPre) != len(keysPos):
-			# 			print(f'The PRE template folder, {templateFolder}, has {len(keysPre)} templates.')
-			# 			print(f'The POST template folder, {templateFolderPost}, has {len(keysPos)} templates.')
-			# 			print('Make sure the amount of templates in each folder, is the same. Or use a CSV list of templates.\nQuitting...')
-			# 			quit()
-			# 		else:
-			# 			print(f'The template folders {templateFolder} and {templateFolderPost} have the same amount of templates')
-			# 			print('But there are differences among them.')
-			# 			print('Check the contents. Quitting...')
-			# 			quit()
-			# 	else:
-			# 		pass
 
 		dLogPre  = readLog(preFolder, formatJson)
 		dLogPost = readLog(postFolder, formatJson)
 			
 		datosEquipoPre  = parseResults(dTmpltPre,  dLogPre,  templateFolder,     templateEngine, routerId)
 		datosEquipoPost = parseResults(dTmpltPost, dLogPost, templateFolderPost, templateEngine, routerId)
+		
+		count_dif       = searchDiffAll(datosEquipoPre, datosEquipoPost, dTmpltPre, routerId, idxComp)
 
-		if showResults == 'all':
-			count_dif       = searchDiffAll(datosEquipoPre, datosEquipoPost, dTmpltPre, routerId, idxComp)
-		else:
-			count_dif       = searchDiffOnly(datosEquipoPre, datosEquipoPost, dTmpltPre, routerId)
-
-		searchMajor     = findMajor(count_dif, dTmpltPre, routerId, showResults, datosEquipoPre)
+		searchMajor     = findMajor(count_dif, dTmpltPre, routerId, datosEquipoPre)
 		df_final        = makeTable(datosEquipoPre, datosEquipoPost)
 
 		constructExcel(df_final, count_dif, searchMajor, postFolder)
@@ -1223,6 +1071,7 @@ def fncRun(dictParam):
 
 
 def main():
+	start_time = time.time()
 
 	parser1 = argparse.ArgumentParser(description='Log Analysis', prog='PROG', usage='%(prog)s [options]')
 	parser1.add_argument('-pre', '--preFolder',     type=str, required=True, help='Folder with PRE Logs. Must end in "/"',)
@@ -1233,10 +1082,9 @@ def main():
 	parser1.add_argument('-tf-post', '--templateFolderPost', type=str, default='', help='If set, use this folder of templates for POST logs.')
 	parser1.add_argument('-te', '--templateEngine', choices=['ttp','textFSM'], default='textFSM', type=str, help='Engine for parsing. Default=textFSM.')
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
-	parser1.add_argument('-sr', '--showResults',    choices=['all'], default='all', type=str, help='TO BE DEPRECATED. When comparison is done, show all variables or only the differences. Only available if --ri/--routerId=name. Default=all.)')
 	parser1.add_argument('-ga', '--genAtp',         type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
 	parser1.add_argument('-ic','--idxComp',       type=str, default= 'no', choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=no')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.2' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.4' )
 
 	args = parser1.parse_args()
 
@@ -1249,16 +1097,13 @@ def main():
 		templateEngine     = args.templateEngine,
 		templateFolderPost = args.templateFolderPost,
 		routerId           = args.routerId,
-		showResults        = args.showResults,
 		genAtp             = True if args.genAtp == 'yes' else False,
 		idxComp            = True if args.idxComp == 'yes' else False,
 	)
 
-	if dictParam['showResults'] == 'diff' and dictParam['routerId'] != 'name':
-		print('If showResults is "diff", routerId must be "name"\nQuitting ...')
-		quit()
-
 	fncRun(dictParam)
+
+	print(f'\nTotal time to run: {time.time()-start_time:.2f} seconds')
 
 ### To be run from the python shell
 if __name__ == '__main__':

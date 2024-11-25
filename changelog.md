@@ -1,3 +1,12 @@
+[4.5.4 - 2024-11-25]
+- function `readTemplate()`: add `Key` as an option to add Values in the valueKey list.
+
+[4.5.3 - 2024-11-25]
+- Remove function `searchDiffOnly`, parameter `showResults`, variables related to `showDiffColumns`
+- Fix bug: update `ValueKeys` considering `filterColumns` when using filters
+- Update `GENERAL_TEMPL_LINES`
+- Add total time to run
+
 [4.5.2 - 2024-11-24]
 
 - When reading the parsgin textFSM templates, whenever a variable is identified as `Required` or `Filldown`, we consider such variable as a key column to color-identify it when looking for differences.
