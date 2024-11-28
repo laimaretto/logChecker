@@ -194,7 +194,7 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 					# We identify here the variables
 					col = line.split(' ')[-2]
 					d[tmpltName]['templateColumns'].append(col)
-					if 'Required' in line or 'Filldown' in line:
+					if 'Required' in line or 'Filldown' in line or 'Key' in line:
 						d[tmpltName]['valueKeys'].append(col)
 				
 				if h2 != -1:
@@ -1048,25 +1048,6 @@ def fncRun(dictParam):
 		else:
 			dTmpltPre  = readTemplate(csvTemplate, templateFolder, templateEngine)
 			dTmpltPost = readTemplate(csvTemplate, templateFolderPost, templateEngine)
-			keysPre    = sorted(list(dTmpltPre.keys()))
-			keysPos    = sorted(list(dTmpltPost.keys()))
-
-			if keysPre == keysPos:
-				pass
-			# else:
-			# 	if csvTemplate == '':
-			# 		if len(keysPre) != len(keysPos):
-			# 			print(f'The PRE template folder, {templateFolder}, has {len(keysPre)} templates.')
-			# 			print(f'The POST template folder, {templateFolderPost}, has {len(keysPos)} templates.')
-			# 			print('Make sure the amount of templates in each folder, is the same. Or use a CSV list of templates.\nQuitting...')
-			# 			quit()
-			# 		else:
-			# 			print(f'The template folders {templateFolder} and {templateFolderPost} have the same amount of templates')
-			# 			print('But there are differences among them.')
-			# 			print('Check the contents. Quitting...')
-			# 			quit()
-			# 	else:
-			# 		pass
 
 		dLogPre  = readLog(preFolder, formatJson)
 		dLogPost = readLog(postFolder, formatJson)
@@ -1103,7 +1084,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-ga', '--genAtp',         type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
 	parser1.add_argument('-ic','--idxComp',       type=str, default= 'no', choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=no')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.3' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.4' )
 
 	args = parser1.parse_args()
 

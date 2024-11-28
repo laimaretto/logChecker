@@ -1,3 +1,6 @@
+[4.5.4 - 2024-11-25]
+- function `readTemplate()`: add `Key` as an option to add Values in the valueKey list.
+
 [4.5.3 - 2024-11-25]
 - Remove function `searchDiffOnly`, parameter `showResults`, variables related to `showDiffColumns`
 - Fix bug: update `ValueKeys` considering `filterColumns` when using filters
