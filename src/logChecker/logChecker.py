@@ -61,7 +61,7 @@ RTR_ID = dict(
 
 CELL_COLOR = 'black'
 CELL_FONT_SIZE = '12'
-NO_MATCH = '[N|n]o [M|m]atching [E|e]ntries( [F|f]ound)?'
+NO_MATCH = '\n(([N|n]o [M|m]atching [E|e]ntr(y|(ies))( [F|f]ound)?(\.)?\n)|(No.+?: 0\n)|(Number of.+: 0\n))(-+|=+)?$'
 
 D_STATUS = dict(
 	no_parsing = dict( #Hay comando, no parsing
@@ -1084,7 +1084,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-ga', '--genAtp',         type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
 	parser1.add_argument('-ic','--idxComp',       type=str, default= 'no', choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=no')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.4' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.5' )
 
 	args = parser1.parse_args()
 
