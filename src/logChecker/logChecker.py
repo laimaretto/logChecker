@@ -1084,7 +1084,7 @@ def main():
 	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
 	parser1.add_argument('-ga', '--genAtp',         type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
 	parser1.add_argument('-ic','--idxComp',       type=str, default= 'no', choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=no')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.5' )
+	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.6' )
 
 	args = parser1.parse_args()
 
@@ -1103,7 +1103,7 @@ def main():
 
 	fncRun(dictParam)
 
-	print(f'\nTotal time to run: {time.time()-start_time:.2f} seconds')
+	print(f'\nTotal running time: {time.time()-start_time:.2f} seconds')
 
 ### To be run from the python shell
 if __name__ == '__main__':
