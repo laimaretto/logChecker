@@ -1,3 +1,6 @@
+[4.5.6 - 2024-11-30]
+- Update `README.md`
+
 [4.5.5 - 2024-11-29]
 - Update `NO_MATCH`
 - Update `README.md`
