@@ -1,3 +1,75 @@
+[4.5.6 - 2024-11-30]
+- Update `README.md`
+
+[4.5.5 - 2024-11-29]
+- Update `NO_MATCH`
+- Update `README.md`
+
+[4.5.4 - 2024-11-25]
+- function `readTemplate()`: add `Key` as an option to add Values in the valueKey list.
+
+[4.5.3 - 2024-11-25]
+- Remove function `searchDiffOnly`, parameter `showResults`, variables related to `showDiffColumns`
+- Fix bug: update `ValueKeys` considering `filterColumns` when using filters
+- Update `GENERAL_TEMPL_LINES`
+- Add total time to run
+
+[4.5.2 - 2024-11-24]
+
+- When reading the parsgin textFSM templates, whenever a variable is identified as `Required` or `Filldown`, we consider such variable as a key column to color-identify it when looking for differences.
+
+[4.5.0 - 2024-11-22]
+- New parameter `ic` with default = no. If `ic` = yes, when running pre-post comparision, a new column `Idx Pre/Post` is added in the tables changes detected and major errors for specific templates, relating with the index from pre-post table. For generic templates, the column `Idx Pre/Post` is added regardless of the parameter `ic`.
+- Changes in `searchDiffAll`:
+    - For specific template: New function `obtain_idx_pre_post` to create new column in `dfCompl`. `obtain_idx_pre_post` detects the matching index from `dfPre` (when `Where` column equal to `left_only`) or `dfPost` (when `Where` equal to `right_only`);
+    - For `general.template`: `tempComp` `level_0` renamed to `Idx Pre/Post`.
+- `findMajor`: `reset_index` to maintain the standard with the other tables (pre-post side by side and changes detected).
+
+[4.4.1 - 2024-10-22]
+- Fix bug for assessment (only using -pre)
+
+[4.4.0 - 2024-10-18]
+- Creation of `diff_colors`, within `constructExcel`.
+    - Equivalent lines (pre-post pair) are compared, and the cells that have different values are highlighted in red. 
+    - Borders were added to the line pairs to make it easier to immediately identify which line corresponds to the "pre" and its "paired" post line.
+- Added the option to create #Keys in the templates to activate the `diff_colors` function in the "changes detected" table. 
+    - `ValueKeys` was added to the default template.
+
+[4.3.3 - 2024-09-04]
+- New function `mixAll()` in order to clean up the code.
+
+[4.3.2 - 2024-09-03]
+- Update `NO_MATCH`.
+- Update the function detParseStatus to use Regex for identifying `No Matching Entries Found`.
+- Update the `no_parsing` in `D_STATUS` from `Can't Parsing` to `Can't Parse`.
+
+[4.3.1 - 2024-09-03]
+- Update version (-v)
+
+[4.3.0 - 2024-09-02]
+- Introduced `matched_templates` list to accumulate matching templates during execution.
+- Adjusted the logic for removing commands from `noMatchedCmdPerRtr` to ensure removal only occurs when applicable.
+- Added a processing step to iterate over `matched_templates`, ensuring all matched templates are correctly handled.
+
+[4.2.6 - 2024-06-26]
+- Updating `searchDiffAll`, when using general templates with different shape, creating a `dfCompl`.
+
+[4.2.5 - 2024-06-25]
+- Updating `searchDiffAll` to better use `pd.compare` when GENERIC_TEMPLATE is being used.
+- Global Variables `PRE` and `POST`.
+- `/environment no more` will not be parsed.
+
+[4.2.4 - 2024-06-25]
+- Updating `searchDiffAll` to better use `pd.compare`. 
+- The function `searchDiffOnly()` is no longer available.
+
+[4.2.3 - 2024-06-25]
+- Updating `searchDiffAll` and `searchDiffOnly`: adjustments for comparision.
+    - When the template is not general, uses `pd.merge` to compare the data from pre and post dataFrames.
+    - If it's general template with the same length for pre and post dataFrames, uses `compare` from `pandas`.
+    - When using general template and the dataFrames don't have the same size, the comparision should be done by specific template.
+- New `parseStatus` for when its necessary to use specific template.
+
 [4.2.2 - 2024-06-14]
 - Updating `parseResults`, fix bug with multiple routers with `general.template`:
     - Add: `dNoMatchedLog`, to save information of no-matched commands in new dictionary, with the same structure of dLog.
