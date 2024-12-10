@@ -259,8 +259,8 @@ def readTemplate(fileTemplate, templateFolder, templateEngine):
 
 		if len(d[tmpltName]['filterColumns']) > 0:
 
-			print(f'The template {tmpltName} has the following columns to be filtered:')
-			print(f'{d[tmpltName]["filterAction"]} the following columns: {d[tmpltName]["filterColumns"]}')
+			print(f' The template {tmpltName} has the following columns to be filtered:')
+			print(f'  {d[tmpltName]["filterAction"]} the following columns: {", ".join(d[tmpltName]["filterColumns"])}')
 
 			# checking column's names
 			x = [col for col in d[tmpltName]['filterColumns'] if col not in d[tmpltName]['templateColumns']]
@@ -398,7 +398,7 @@ def readLog(logFolder, formatJson):
 
 	return d
 
-def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
+def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId, useGen, logFolder):
 	"""
 	Build the Dataframe from textFSM filter, index and router log
 
@@ -570,26 +570,31 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId):
 			dNoMatchedLog[routerLogKey]['name']	  = dLog[routerLogKey]['name']	# for writeDfTemp
 
 	#Processing the no-matched commands
+	if useGen == True:
+		#If useGen == False, the keys with generic template are not created in datosEquipo dict.
 
-	for idR, routerLogKey in enumerate(dNoMatchedLog.keys()):
-		# Basic information of the router, for writeDfTemp
-		routerName	= dLog[routerLogKey]['name']
-		routerIP	= dLog[routerLogKey]['ip']
+		for idR, routerLogKey in enumerate(dNoMatchedLog.keys()):
+			# Basic information of the router, for writeDfTemp
+			routerName	= dLog[routerLogKey]['name']
+			routerIP	= dLog[routerLogKey]['ip']
+			for i,cmdsLogs in enumerate(noMatchedCmdAllRtr):
+				# Here, enumerate and noMatchedCmdAllRtr are used to ensure that all no-matched commands,
+				# indenpendently of the router, will have the same identification (i).
+				# So we can keep the information of the same command together correctly
 
-		for i,cmdsLogs in enumerate(noMatchedCmdAllRtr):
-			# Here, enumerate and noMatchedCmdAllRtr are used to ensure that all no-matched commands,
-			# indenpendently of the router, will have the same identification (i).
-			# So we can keep the information of the same command together correctly
+				# If certain router have datosCmdsLogs, we use this information in this iteration.
+				# Otherwise, moves to the other iteration of "for" of commands.
+				try:
+					datosCmdsLogs = dNoMatchedLog[routerLogKey][cmdsLogs] #Logs obtained for each command
+				except:
+					continue
 
-			# If certain router have datosCmdsLogs, we use this information in this iteration.
-			# Otherwise, moves to the other iteration of "for" of commands.
-			try:
-				datosCmdsLogs = dNoMatchedLog[routerLogKey][cmdsLogs] #Logs obtained for each command
-			except:
-				continue
+				datosEquipo = mixAll(dTmpl, datosEquipo, routerId, cmdsLogs, datosCmdsLogs, f'general_{i}')
 
-			datosEquipo = mixAll(dTmpl, datosEquipo, routerId, cmdsLogs, datosCmdsLogs, f'general_{i}')
+	if useGen == False and len(noMatchedCmdAllRtr) > 0:
+		print(f'  -ug=no. The following commands will not be parsed: {", ".join(noMatchedCmdAllRtr)}')
 
+	print(f'##### Logs from folder {logFolder} parsed #####')	
 	return datosEquipo
 
 def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId, idxComp):
@@ -672,6 +677,8 @@ def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId, idxComp):
 
 		countDif[tmpltName]['dfResultDatos'] = dfCompl.sort_values(by = orderedColums)
 		countDif[tmpltName]['valueKeys'] = datosEquipoPre[tmpltName]['valueKeys']
+
+	print(f'##### Comparisions between logs completed #####')
 
 	return countDif
 
@@ -1007,7 +1014,8 @@ def fncRun(dictParam):
 	templateFolderPost = dictParam['templateFolderPost']
 	routerId           = dictParam['routerId']
 	genAtp             = dictParam['genAtp']
-	idxComp             = dictParam['idxComp']
+	idxComp            = dictParam['idxComp']
+	useGen             = dictParam['useGen']
 
 	if _platform == "win64" or _platform == "win32":
 		templateFolder = templateFolder.replace('/', '\\')
@@ -1019,7 +1027,7 @@ def fncRun(dictParam):
 		dTmplt = readTemplate(csvTemplate, templateFolder, templateEngine)
 		dLog   = readLog(preFolder, formatJson)
 
-		df_final    = parseResults(dTmplt, dLog, templateFolder, templateEngine, routerId)
+		df_final    = parseResults(dTmplt, dLog, templateFolder, templateEngine, routerId, useGen, preFolder)
 		count_dif   = {}
 		searchMajor = {}
 
@@ -1052,8 +1060,8 @@ def fncRun(dictParam):
 		dLogPre  = readLog(preFolder, formatJson)
 		dLogPost = readLog(postFolder, formatJson)
 			
-		datosEquipoPre  = parseResults(dTmpltPre,  dLogPre,  templateFolder,     templateEngine, routerId)
-		datosEquipoPost = parseResults(dTmpltPost, dLogPost, templateFolderPost, templateEngine, routerId)
+		datosEquipoPre  = parseResults(dTmpltPre,  dLogPre,  templateFolder,     templateEngine, routerId, useGen, preFolder)
+		datosEquipoPost = parseResults(dTmpltPost, dLogPost, templateFolderPost, templateEngine, routerId, useGen, postFolder)
 		
 		count_dif       = searchDiffAll(datosEquipoPre, datosEquipoPost, dTmpltPre, routerId, idxComp)
 
@@ -1076,15 +1084,16 @@ def main():
 	parser1 = argparse.ArgumentParser(description='Log Analysis', prog='PROG', usage='%(prog)s [options]')
 	parser1.add_argument('-pre', '--preFolder',     type=str, required=True, help='Folder with PRE Logs. Must end in "/"',)
 	parser1.add_argument('-post','--postFolder' ,   type=str, default='',    help='Folder with POST Logs. Must end in "/"',)
-	parser1.add_argument('-csv', '--csvTemplate',   type=str, default='', help='CSV with list of templates names to be used in parsing. If the file is omitted, then all the templates inside --templateFolder, will be considered for parsing. Default=None.')
-	parser1.add_argument('-json', '--formatJson',   type=str, default = 'yes', choices=['yes','no'], help='logs in json format: yes or no. Default=yes.')
+	parser1.add_argument('-csv', '--csvTemplate',   type=str, default='',    help='CSV with list of templates names to be used in parsing. If the file is omitted, then all the templates inside --templateFolder, will be considered for parsing. Default=None.')
+	parser1.add_argument('-json', '--formatJson',   type=str, default='yes', choices=['yes','no'], help='logs in json format: yes or no. Default=yes.')
 	parser1.add_argument('-tf', '--templateFolder', type=str, default='Templates/', help='Folder where templates reside. Used both for PRE and POST logs. Default=Templates/')
-	parser1.add_argument('-tf-post', '--templateFolderPost', type=str, default='', help='If set, use this folder of templates for POST logs.')
-	parser1.add_argument('-te', '--templateEngine', choices=['ttp','textFSM'], default='textFSM', type=str, help='Engine for parsing. Default=textFSM.')
-	parser1.add_argument('-ri', '--routerId',       choices=['name','ip','both'], default='name', type=str, help='Router Id to be used within the tables in the Excel report. Default=name.')
-	parser1.add_argument('-ga', '--genAtp',         type=str, help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no', default='no', choices=['no','yes'])
-	parser1.add_argument('-ic','--idxComp',       type=str, default= 'no', choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=no')
-	parser1.add_argument('-v'  ,'--version',        help='Version', action='version', version='(c) 2024 - Version: 4.5.6' )
+	parser1.add_argument('-tf-post', '--templateFolderPost', type=str, default='',  help='If set, use this folder of templates for POST logs.')
+	parser1.add_argument('-te', '--templateEngine', type=str, default='textFSM', choices=['ttp','textFSM'], help='Engine for parsing. Default=textFSM.')
+	parser1.add_argument('-ri', '--routerId',       type=str, default='name',choices=['name','ip','both'],  help='Router Id to be used within the tables in the Excel report. Default=name.')
+	parser1.add_argument('-ga', '--genAtp',         type=str, default='no',  choices=['no','yes'], help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no')
+	parser1.add_argument('-ic','--idxComp',         type=str, default='no',  choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=no')
+	parser1.add_argument('-ug','--useGen',          type=str, default='yes', choices=['yes','no'], help='Using generic template. If -ug=no, logChecker only use the templates indicated in the -tf and -tf-post folder. Default=yes')
+	parser1.add_argument('-v' ,'--version',         help='Version', action='version', version='(c) 2024 - Version: 4.5.7' )
 
 	args = parser1.parse_args()
 
@@ -1099,6 +1108,7 @@ def main():
 		routerId           = args.routerId,
 		genAtp             = True if args.genAtp == 'yes' else False,
 		idxComp            = True if args.idxComp == 'yes' else False,
+		useGen             = True if args.useGen == 'yes' else False, 
 	)
 
 	fncRun(dictParam)

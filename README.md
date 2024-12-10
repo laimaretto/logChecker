@@ -74,6 +74,7 @@ LogChecker can be configured through CLI as shown below. It is also possible to 
 |`-ri` | Router ID to be used within the tables in Excel report: name, ip or both. Default = name |
 |`-ga` | Generate ATP document in `.docx` format, based on contents of json files from `taskAutom`. Default = no |
 |`-ic` | Adds new column (Idx Pre/Post) in changes detected table, when running comparision. Default = no  |
+|`-ug` | Using generic template. If `-ug=no`, logChecker only use the templates indicated in the `-tf` folder (and `-tf-post, if applicable). Default = yes |
 |`-v` | Show version |
 
 ### Templates
