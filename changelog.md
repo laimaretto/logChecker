@@ -1,3 +1,8 @@
+[4.5.7 - 2024-12-10]
+- New parameter `-ug / --useGen` to enable/disable the use of generic template. By default=yes. Disable for the cases where we need to parse just the commands indicated in -tf folder.
+- Update `README.md`
+- New execution status messages
+
 [4.5.6 - 2024-11-30]
 - Update `README.md`
 
