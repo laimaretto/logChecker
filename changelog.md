@@ -1,3 +1,10 @@
+[4.5.8 - 2024-12-20]
+- Replacing `_platform` by `sys.platform`
+- New functionality: Use plugins to interact with parsed data.
+    - New paramater: `-up`/`--usePlugin`
+    - New functions: `verifyPlugin` and `applyPlugin`
+    - Update in `fncRun`
+
 [4.5.7 - 2024-12-10]
 - New parameter `-ug / --useGen` to enable/disable the use of generic template. By default=yes. Disable for the cases where we need to parse just the commands indicated in -tf folder.
 - Update `README.md`

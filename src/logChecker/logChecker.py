@@ -17,13 +17,14 @@ import textfsm
 import pandas as pd
 import glob
 import argparse
-from sys import platform as _platform
+import sys
 import json
 import re
 from ttp import ttp
 import os
 import io
 import time
+import importlib
 
 import docx
 from docx.enum.style import WD_STYLE_TYPE
@@ -367,17 +368,17 @@ def readLog(logFolder, formatJson):
 
 		ending = '*rx.txt'
 
-	if _platform == "linux" or _platform == "linux2" or _platform == "darwin":
+	if sys.platform == "linux" or sys.platform == "linux2" or sys.platform == "darwin":
 		# linux
 
 		listContent  = [f for f in glob.glob(logFolder  + ending)]
 
-	elif _platform == "win64" or _platform == "win32":
+	elif sys.platform == "win64" or sys.platform == "win32":
 		# Windows 64-bit
 
 		listContent  = [f.replace("\\", '/') for f in glob.glob(logFolder  + ending)]
 	else:
-		print(str(_platform) + ": not a valid platform. Quitting....")
+		print(sys.platform + ": not a valid platform. Quitting....")
 		quit()
 
 	d = {}
@@ -596,6 +597,70 @@ def parseResults(dTmpl, dLog, templateFolder, templateEngine, routerId, useGen, 
 
 	print(f'##### Logs from folder {logFolder} parsed #####')	
 	return datosEquipo
+
+def verifyPlugin(pluginFilename):
+	"""Verifies the plugin template
+
+	Args:
+		pluginFilename (str): Name of config template
+
+	Returns:
+		module: The module
+	"""
+
+	try:
+		if pluginFilename.split(".")[-1] == "py":
+			spec = importlib.util.spec_from_file_location("usePlugin",pluginFilename)
+			mod  = importlib.util.module_from_spec(spec)
+			sys.modules["usePlugin"] = mod
+			spec.loader.exec_module(mod)
+		else:
+			print("Verify extension of the file to be '.py'. Quitting...")
+			quit()
+	except Exception as e:
+		print(e)
+		print("----\nError importing plugin. Quitting ...")
+		quit()
+	
+	return mod
+
+def applyPlugin(mod, plg, df_final, dTmplt):
+	'''Apply the plugin (from mod) to the data in the df_final. Updates the dTmplt and df_final dictionaries.
+	'''
+	try:
+		df_plg, valueKeys_plg = mod.usePlugin(df_final)
+		if not (isinstance(df_plg, pd.DataFrame) and isinstance(valueKeys_plg, list)):
+			print("Plugin Error: df_plg must be a dataFrame and valueKeys_plg must be a list.")
+			quit()
+	except Exception as e:
+		print(f'Plugin Error: Check the structure of your plugin {plg}')
+		print(e)
+		quit()
+	
+	#Keeping alphanumeric characters and '.', replacing other characters with '_'
+	plg_re = re.sub(r"[^\w.]", "_", plg)
+
+
+	df_final[plg_re] = {
+		'dfResultDatos' : df_plg,
+		'template'      : plg_re,
+		'command'       : plg,
+		'valueKeys'     : valueKeys_plg,
+		'parseStatus'   : 'ok',
+		'filterColumns' : df_plg.columns.tolist()
+	}
+
+	dTmplt[plg_re] = {
+		'templateColumns' : df_plg.columns.tolist(),
+		'commandKey'      : '',
+		'majorDown'       : ['down','dwn'],
+		'filterColumns'   : df_plg.columns.tolist(),
+		'valueKeys'       : valueKeys_plg,
+	}
+
+	print(f'##### Plugin Applied - New sheet: {plg}  #####')
+	
+	return df_final, dTmplt
 
 def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId, idxComp):
 	'''
@@ -1016,8 +1081,9 @@ def fncRun(dictParam):
 	genAtp             = dictParam['genAtp']
 	idxComp            = dictParam['idxComp']
 	useGen             = dictParam['useGen']
+	usePlugin          = dictParam['usePlugin']
 
-	if _platform == "win64" or _platform == "win32":
+	if sys.platform == "win64" or sys.platform == "win32":
 		templateFolder = templateFolder.replace('/', '\\')
 		if templateFolderPost != '':
 			templateFolderPost = templateFolderPost.replace('/','\\')
@@ -1028,6 +1094,11 @@ def fncRun(dictParam):
 		dLog   = readLog(preFolder, formatJson)
 
 		df_final    = parseResults(dTmplt, dLog, templateFolder, templateEngine, routerId, useGen, preFolder)
+		if len(usePlugin)>0:
+			for plg in usePlugin:
+				mod = verifyPlugin(plg)
+				df_final, dTmplt = applyPlugin(mod, plg, df_final, dTmplt)
+
 		count_dif   = {}
 		searchMajor = {}
 
@@ -1063,6 +1134,12 @@ def fncRun(dictParam):
 		datosEquipoPre  = parseResults(dTmpltPre,  dLogPre,  templateFolder,     templateEngine, routerId, useGen, preFolder)
 		datosEquipoPost = parseResults(dTmpltPost, dLogPost, templateFolderPost, templateEngine, routerId, useGen, postFolder)
 		
+		if len(usePlugin)>0:
+			for plg in usePlugin:
+				mod = verifyPlugin(plg)
+				datosEquipoPre, dTmpltPre   = applyPlugin(mod, plg, datosEquipoPre, dTmpltPre)
+				datosEquipoPost, dTmpltPost = applyPlugin(mod, plg, datosEquipoPost, dTmpltPost)
+
 		count_dif       = searchDiffAll(datosEquipoPre, datosEquipoPost, dTmpltPre, routerId, idxComp)
 
 		searchMajor     = findMajor(count_dif, dTmpltPre, routerId, datosEquipoPre)
@@ -1093,9 +1170,17 @@ def main():
 	parser1.add_argument('-ga', '--genAtp',         type=str, default='no',  choices=['no','yes'], help='Generate ATP document in docx format, based on the contents of the json files from taskAutom. Default=no')
 	parser1.add_argument('-ic','--idxComp',         type=str, default='no',  choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=no')
 	parser1.add_argument('-ug','--useGen',          type=str, default='yes', choices=['yes','no'], help='Using generic template. If -ug=no, logChecker only use the templates indicated in the -tf and -tf-post folder. Default=yes')
-	parser1.add_argument('-v' ,'--version',         help='Version', action='version', version='(c) 2024 - Version: 4.5.7' )
+	parser1.add_argument('-up','--usePlugin',type=str, default='',help="Additional plugins for manipulation of parsed information, creating new sheets. One plugin, use -up plugin1.py . For indicate a folder containing all the plugins: -up plugins/ . Default='' ")
+	parser1.add_argument('-v' ,'--version',         help='Version', action='version', version='(c) 2024 - Version: 4.5.8' )
 
 	args = parser1.parse_args()
+
+	if args.usePlugin == '':
+		usePlugin = ''
+	elif args.usePlugin.endswith(('/', '\\')):
+		usePlugin = glob.glob(args.usePlugin + '*.py')
+	else:
+		usePlugin = args.usePlugin.split(',')
 
 	dictParam = dict(
 		preFolder          = args.preFolder,
@@ -1108,7 +1193,8 @@ def main():
 		routerId           = args.routerId,
 		genAtp             = True if args.genAtp == 'yes' else False,
 		idxComp            = True if args.idxComp == 'yes' else False,
-		useGen             = True if args.useGen == 'yes' else False, 
+		useGen             = True if args.useGen == 'yes' else False,
+		usePlugin          = usePlugin,
 	)
 
 	fncRun(dictParam)
