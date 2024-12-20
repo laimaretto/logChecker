@@ -25,6 +25,7 @@ import os
 import io
 import time
 import importlib
+import traceback
 
 import docx
 from docx.enum.style import WD_STYLE_TYPE
@@ -629,37 +630,44 @@ def applyPlugin(mod, plg, df_final, dTmplt):
 	'''
 	try:
 		df_plg, valueKeys_plg = mod.usePlugin(df_final)
-		if not (isinstance(df_plg, pd.DataFrame) and isinstance(valueKeys_plg, list)):
-			print("Plugin Error: df_plg must be a dataFrame and valueKeys_plg must be a list.")
+		if df_plg is None and valueKeys_plg is None: #In this case, don't save new sheet.
+			pass
+		elif not (isinstance(df_plg, pd.DataFrame) and isinstance(valueKeys_plg, list)):
+			print("Plugin Error: df_plg must be a dataFrame and valueKeys_plg must be a list. Or both must be None, if there's no need to create a new sheet.")
 			quit()
-	except Exception as e:
+	
+	except:
 		print(f'Plugin Error: Check the structure of your plugin {plg}')
-		print(e)
+		for e in traceback.format_exc().splitlines()[-3:]:
+			print(e)
 		quit()
+
+	if (df_plg is not None) and (valueKeys_plg is not None):
+		#Keeping alphanumeric characters and '.', replacing other characters with '_'
+		plg_re = re.sub(r"[^\w.]", "_", plg)
+		
+		df_final[plg_re] = {
+			'dfResultDatos' : df_plg,
+			'template'      : plg_re,
+			'command'       : plg,
+			'valueKeys'     : valueKeys_plg,
+			'parseStatus'   : 'ok',
+			'filterColumns' : df_plg.columns.tolist()
+		}
+
+		dTmplt[plg_re] = {
+			'templateColumns' : df_plg.columns.tolist(),
+			'commandKey'      : '',
+			'majorDown'       : ['down','dwn'],
+			'filterColumns'   : df_plg.columns.tolist(),
+			'valueKeys'       : valueKeys_plg,
+		}
+
+		print(f' {plg} - New sheet')
 	
-	#Keeping alphanumeric characters and '.', replacing other characters with '_'
-	plg_re = re.sub(r"[^\w.]", "_", plg)
+	else:
+		print(f" {plg} - Does not create a new sheet")
 
-
-	df_final[plg_re] = {
-		'dfResultDatos' : df_plg,
-		'template'      : plg_re,
-		'command'       : plg,
-		'valueKeys'     : valueKeys_plg,
-		'parseStatus'   : 'ok',
-		'filterColumns' : df_plg.columns.tolist()
-	}
-
-	dTmplt[plg_re] = {
-		'templateColumns' : df_plg.columns.tolist(),
-		'commandKey'      : '',
-		'majorDown'       : ['down','dwn'],
-		'filterColumns'   : df_plg.columns.tolist(),
-		'valueKeys'       : valueKeys_plg,
-	}
-
-	print(f'##### Plugin Applied - New sheet: {plg}  #####')
-	
 	return df_final, dTmplt
 
 def searchDiffAll(datosEquipoPre, datosEquipoPost, dTmplt, routerId, idxComp):
@@ -1095,6 +1103,7 @@ def fncRun(dictParam):
 
 		df_final    = parseResults(dTmplt, dLog, templateFolder, templateEngine, routerId, useGen, preFolder)
 		if len(usePlugin)>0:
+			print("##### Plugins: #####")
 			for plg in usePlugin:
 				mod = verifyPlugin(plg)
 				df_final, dTmplt = applyPlugin(mod, plg, df_final, dTmplt)
@@ -1135,6 +1144,7 @@ def fncRun(dictParam):
 		datosEquipoPost = parseResults(dTmpltPost, dLogPost, templateFolderPost, templateEngine, routerId, useGen, postFolder)
 		
 		if len(usePlugin)>0:
+			print("##### Plugins: #####")
 			for plg in usePlugin:
 				mod = verifyPlugin(plg)
 				datosEquipoPre, dTmpltPre   = applyPlugin(mod, plg, datosEquipoPre, dTmpltPre)
@@ -1171,7 +1181,7 @@ def main():
 	parser1.add_argument('-ic','--idxComp',         type=str, default='no',  choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=no')
 	parser1.add_argument('-ug','--useGen',          type=str, default='yes', choices=['yes','no'], help='Using generic template. If -ug=no, logChecker only use the templates indicated in the -tf and -tf-post folder. Default=yes')
 	parser1.add_argument('-up','--usePlugin',type=str, default='',help="Additional plugins for manipulation of parsed information, creating new sheets. One plugin, use -up plugin1.py . For indicate a folder containing all the plugins: -up plugins/ . Default='' ")
-	parser1.add_argument('-v' ,'--version',         help='Version', action='version', version='(c) 2024 - Version: 4.5.8' )
+	parser1.add_argument('-v' ,'--version',         help='Version', action='version', version='(c) 2024 - Version: 4.5.9' )
 
 	args = parser1.parse_args()
 

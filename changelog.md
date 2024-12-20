@@ -1,3 +1,7 @@
+[4.5.9 - 2024-12-20]
+- Update `applyPlugin`: option to use `df_plg` and `valueKeys_plg` == None. In this case, plugin will not generate a new sheet in Excel.
+- Update `README.md`
+
 [4.5.8 - 2024-12-20]
 - Replacing `_platform` by `sys.platform`
 - New functionality: Use plugins to interact with parsed data.

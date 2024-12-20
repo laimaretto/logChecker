@@ -77,7 +77,7 @@ LogChecker can be configured through CLI as shown below. It is also possible to 
 |`-ga` | Generate ATP document in `.docx` format, based on contents of json files from `taskAutom`. Default = no |
 |`-ic` | Adds new column (Idx Pre/Post) in changes detected table, when running comparision. Default = no  |
 |`-ug` | Using generic template. If `-ug=no`, logChecker only use the templates indicated in the `-tf` folder (and `-tf-post, if applicable). Default = yes |
-|`-us` | Additional plugins for manipulation of parsed information, creating new sheets. One plugin, use -up plugin1.py . For indicate a folder containing all the plugins: -up plugins/ . Default=''|
+|`-up` | Additional plugins for manipulation of parsed information, creating new sheets. One plugin, use -up plugin1.py . For indicate a folder containing all the plugins: -up plugins/ . Default=''|
 |`-v` | Show version |
 
 ### Templates
@@ -125,6 +125,8 @@ def usePlugin(dict_parsed):
     Returns:
         df_plg (dataFrame): Dataframe with the structure expected to be saved in new tab in Excel. In some cases, it is necessary to add the NAME or IP column, depending on the execution mode in -ri
         valueKeys_plg (list): It is necessary to identify at least one column from the dataframe df_plg to be considered as valueKeys when performing the comparison task.
+        
+        Or use df_plg = None and valueKeys_plg = None to use a plugin without save a new sheet in Excel.
 
     Notes:
        - For example, to access the parsed data dataframe of a specific template, use: dict_parsed['sh_port.template']['dfResultDatos']
@@ -132,6 +134,8 @@ def usePlugin(dict_parsed):
 
     return df_plg, valueKeys_plg
 ```
+
+If `df_plg` (DataFrame) and `valueKeys_plg` (list) are returned, the plugin will save the information in a new sheet in Excel. If `return None, None` , the plugin will not save the information in the Excel.
 
 
 [Go to Table of Contents](#table-of-contents)
