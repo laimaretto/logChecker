@@ -13,7 +13,9 @@ The idea was born because of the need for a simple tool that could do pre-post c
 - [Usage](#usage)
   - [Configuration Options](#configuration-options)
   - [Templates](#templates)
+  - [Optional Features](#optional-features)
     - [Filtering Variables of Templates](#filtering-variables-of-templates)
+    - [Using plugins](#using-plugins)
 - [Results](#results)
   - [Tabulation of Logs - Assessment](#tabulation-of-logs---assessment)
   - [Comparision of Logs - Pre/Post Check](#comparision-of-logs---pre-and-post-check)
@@ -75,6 +77,7 @@ LogChecker can be configured through CLI as shown below. It is also possible to 
 |`-ga` | Generate ATP document in `.docx` format, based on contents of json files from `taskAutom`. Default = no |
 |`-ic` | Adds new column (Idx Pre/Post) in changes detected table, when running comparision. Default = no  |
 |`-ug` | Using generic template. If `-ug=no`, logChecker only use the templates indicated in the `-tf` folder (and `-tf-post, if applicable). Default = yes |
+|`-up` | Additional plugins for manipulation of parsed information, creating new sheets. One plugin, use -up plugin1.py . For indicate a folder containing all the plugins: -up plugins/ . Default=''|
 |`-v` | Show version |
 
 ### Templates
@@ -89,7 +92,9 @@ There are situations in which a comparison of logs must be done when different v
 > When different TIMOS versions have been used, the variables of the several templates must be the same for the comparison to be succesful.
 
 <!---To find out a set of Templates that can be used, see [`here`](https://github.com/laimaretto/logTemplates)-->
-### Filtering Variables of Templates
+### Optional Features
+
+#### Filtering Variables of Templates
 
 Filtering of variables is possible. This can be done by simply adding the comments `#filterAction:` as `exclude` or `include-only`, and listing the variables in `#filterColumns:`, within the comment section of the templates at the very top.
 
@@ -100,11 +105,46 @@ Similarly, if using `#filterAction: include-only`, the specified variables in `#
 
 [Go to Table of Contents](#table-of-contents)
 
+#### Using Plugins
+
+It is possible to use plugins to create new tabs in the Excel file. These plugins interact with the parsed data and should be customized as needed.
+
+If a plugin is used, specify it as `-up pluginName.py`.
+For multiple plugins, specify a folder, for example, using `-up pluginFolder/`. LogChecker will go through the folder's contents and use all `.py` files as plugins. 
+
+The plugin structure must follow:
+
+> pluginName.py
+```python
+def usePlugin(dict_parsed):
+    '''Plugin function that interacts with the dictionary containing the parsed data.
+
+    Args:
+        dict_parsed (dict): Dictionary with the parsed information.
+
+    Returns:
+        df_plg (dataFrame): Dataframe with the structure expected to be saved in new tab in Excel. In some cases, it is necessary to add the NAME or IP column, depending on the execution mode in -ri
+        valueKeys_plg (list): It is necessary to identify at least one column from the dataframe df_plg to be considered as valueKeys when performing the comparison task.
+        
+        Or use df_plg = None and valueKeys_plg = None to use a plugin without save a new sheet in Excel.
+
+    Notes:
+       - For example, to access the parsed data dataframe of a specific template, use: dict_parsed['sh_port.template']['dfResultDatos']
+    '''
+
+    return df_plg, valueKeys_plg
+```
+
+If `df_plg` (DataFrame) and `valueKeys_plg` (list) are returned, the plugin will save the information in a new sheet in Excel. If `return None, None` , the plugin will not save the information in the Excel.
+
+
+[Go to Table of Contents](#table-of-contents)
+
 ## Results
 
-Here are two examples of how to run logChecker.
+Here are two simpler examples of how to run logChecker.
 
-All the parameters are in [Configuration Options](#configuration-options).
+For more options, see the [available parameters](#configuration-options), as well as how to [filter template variable](#filtering-variables-of-templates) and how to [use plugins](#using-plugins). 
 
 
 ### Tabulation of logs - Assessment
@@ -126,6 +166,11 @@ Saving Excel
 
 Total running time: 0.45 seconds
 ```
+Below is the flowchart of the use case where [taskAutom](#https://github.com/laimaretto/taskAutom) is used to collect the data and logChecker is used to organize the collected information.
+
+|![Assessment with taskAutom and LogChecker](https://raw.githubusercontent.com/laimaretto/taskAutom/refs/heads/main/img/lc_assessment.png)|
+|:--:| 
+| *Use case: taskAutom and logChecker to make an assessment*|
 
 
 ### Comparision of logs - Pre and post check
@@ -149,5 +194,12 @@ Saving Excel
 
 Total running time: 0.46 seconds
 ```
+
+Below is the flowchart of the use case in which [taskAutom](#https://github.com/laimaretto/taskAutom) is used to collect the data and logChecker is used to compare the pre and post check.
+
+|![Pre-post check with taskAutom and LogChecker](https://raw.githubusercontent.com/laimaretto/taskAutom/refs/heads/main/img/lc_prepost.png)|
+|:--:| 
+| *Use case: taskAutom and logChecker to pre and post Check comparision*|
+
 
 [Go to Table of Contents](#table-of-contents)
