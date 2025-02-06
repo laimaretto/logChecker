@@ -122,20 +122,27 @@ def usePlugin(dict_parsed):
     Args:
         dict_parsed (dict): Dictionary with the parsed information.
 
-    Returns:
-        df_plg (dataFrame): Dataframe with the structure expected to be saved in new tab in Excel. In some cases, it is necessary to add the NAME or IP column, depending on the execution mode in -ri
-        valueKeys_plg (list): It is necessary to identify at least one column from the dataframe df_plg to be considered as valueKeys when performing the comparison task.
+    Returns
+        dictPlugin (dict): Nested dictionary with the structure:
+          dictPlugin = {
+            "sheetname_n" : {
+                "df": df_n, "valueKeys": valueKeys_n
+                }
+            }
+        for n sheetnames, if necessary, where:
+        df_n (dataFrame) with the structure expected to be saved in new tab in Excel. In some cases, it is necessary to add the NAME or IP column, depending on the execution mode in -ri
+        valueKeys_n (list): To identify at least one column from the dataframe df_n to be considered as valueKeys when performing the comparison task.
         
-        Or use df_plg = None and valueKeys_plg = None to use a plugin without save a new sheet in Excel.
+        Or use dictPlugin = None to use a plugin without save a new sheet in Excel.
 
     Notes:
        - For example, to access the parsed data dataframe of a specific template, use: dict_parsed['sh_port.template']['dfResultDatos']
     '''
 
-    return df_plg, valueKeys_plg
+    return dictPlugin
 ```
 
-If `df_plg` (DataFrame) and `valueKeys_plg` (list) are returned, the plugin will save the information in a new sheet in Excel. If `return None, None` , the plugin will not save the information in the Excel.
+If `dictPlugin` (dict) are returned, the plugin will save the information in new Excel sheet. If `return None` , the plugin will not save the information in the Excel.
 
 
 [Go to Table of Contents](#table-of-contents)

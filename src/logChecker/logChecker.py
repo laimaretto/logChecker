@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 #
+# Copyright (C) 2025 Lucas Aimaretto / laimaretto@gmail.com, Beatriz Bonafe / bonafencb@gmail.com
 # Copyright (C) 2024 Lucas Aimaretto / laimaretto@gmail.com, Beatriz Bonafe / bonafencb@gmail.com , Kathleen Mendonca / kathleencristine20@gmail.com
 # Copyright (C) 2023 Lucas Aimaretto / laimaretto@gmail.com
 # Copyright (C) 2020 Manuel Saldivar / manuelsaldivar@outlook.com.ar, Lucas Aimaretto / laimaretto@gmail.com
@@ -126,6 +127,11 @@ Start
   ^${Lines} -> Record"""
 
 NON_COMMAND_KEYS = ['name','ip','version','hwType','#FINSCRIPT','exit all','','/environment no more']
+
+PLUGIN_ERROR = '''Plugin Error: the plugin must return a dictionary with the structure:
+  dictPlugin = {"sheetname_n": {"df": df_n, "valueKeys": valueKeys_n}} for n sheets,
+  where df_n must be a dataFrame and valueKeys_n must be a list.
+  Or dictPlugin must be None, if there is no need to create new sheets.'''
 
 def readTemplate(fileTemplate, templateFolder, templateEngine):
 	'''
@@ -627,14 +633,24 @@ def verifyPlugin(pluginFilename):
 
 def applyPlugin(mod, plg, df_final, dTmplt):
 	'''Apply the plugin (from mod) to the data in the df_final. Updates the dTmplt and df_final dictionaries.
-	'''
+	'''	
 	try:
-		df_plg, valueKeys_plg = mod.usePlugin(df_final)
-		if df_plg is None and valueKeys_plg is None: #In this case, don't save new sheet.
+		dictPlugin = mod.usePlugin(df_final)
+
+		if dictPlugin == None:
+			print(f" {plg} - Does not create a new sheet")
 			pass
-		elif not (isinstance(df_plg, pd.DataFrame) and isinstance(valueKeys_plg, list)):
-			print("Plugin Error: df_plg must be a dataFrame and valueKeys_plg must be a list. Or both must be None, if there's no need to create a new sheet.")
+
+		elif not (isinstance(dictPlugin,dict)):
+			print(PLUGIN_ERROR)
 			quit()
+		
+		else:
+			for dpname in dictPlugin:
+				if  ('df' not in dictPlugin[dpname] or 'valueKeys' not in dictPlugin[dpname]) or (not (isinstance(dictPlugin[dpname]['df'], pd.DataFrame) and isinstance(dictPlugin[dpname]['valueKeys'], list))):
+					print(PLUGIN_ERROR)
+					print(f'   Please verify the information in {dpname} dict')
+					quit()
 	
 	except:
 		print(f'Plugin Error: Check the structure of your plugin {plg}')
@@ -642,31 +658,30 @@ def applyPlugin(mod, plg, df_final, dTmplt):
 			print(e)
 		quit()
 
-	if (df_plg is not None) and (valueKeys_plg is not None):
-		#Keeping alphanumeric characters and '.', replacing other characters with '_'
-		plg_re = re.sub(r"[^\w.]", "_", plg)
-		
-		df_final[plg_re] = {
-			'dfResultDatos' : df_plg,
-			'template'      : plg_re,
-			'command'       : plg,
-			'valueKeys'     : valueKeys_plg,
-			'parseStatus'   : 'ok',
-			'filterColumns' : df_plg.columns.tolist()
-		}
+	if dictPlugin is not None:
+		for dpname in dictPlugin:
+			#Keeping alphanumeric characters and '.', replacing other characters with '_'
+			plg_key = plg.split(os.path.sep)[-1]
+			plg_key = re.sub(r"[^\w.]", "_", plg_key)
+			
+			df_final[plg_key+'_'+dpname] = {
+				'dfResultDatos' : dictPlugin[dpname]['df'],
+				'template'      : plg_key+'_'+dpname,
+				'command'       : plg + ' - ' + dpname,
+				'valueKeys'     : dictPlugin[dpname]['valueKeys'],
+				'parseStatus'   : 'ok',
+				'filterColumns' : dictPlugin[dpname]['df'].columns.tolist()
+			}
 
-		dTmplt[plg_re] = {
-			'templateColumns' : df_plg.columns.tolist(),
-			'commandKey'      : '',
-			'majorDown'       : ['down','dwn'],
-			'filterColumns'   : df_plg.columns.tolist(),
-			'valueKeys'       : valueKeys_plg,
-		}
+			dTmplt[plg_key+'_'+dpname] = {
+				'templateColumns' : dictPlugin[dpname]['df'].columns.tolist(),
+				'commandKey'      : '',
+				'majorDown'       : ['down','dwn'],
+				'filterColumns'   : dictPlugin[dpname]['df'].columns.tolist(),
+				'valueKeys'       : dictPlugin[dpname]['valueKeys'],
+			}
 
-		print(f' {plg} - New sheet')
-	
-	else:
-		print(f" {plg} - Does not create a new sheet")
+			print(f' {plg} - {dpname} - New sheet')
 
 	return df_final, dTmplt
 
@@ -1181,7 +1196,7 @@ def main():
 	parser1.add_argument('-ic','--idxComp',         type=str, default='no',  choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=no')
 	parser1.add_argument('-ug','--useGen',          type=str, default='yes', choices=['yes','no'], help='Using generic template. If -ug=no, logChecker only use the templates indicated in the -tf and -tf-post folder. Default=yes')
 	parser1.add_argument('-up','--usePlugin',type=str, default='',help="Additional plugins for manipulation of parsed information, creating new sheets. One plugin, use -up plugin1.py . For indicate a folder containing all the plugins: -up plugins/ . Default='' ")
-	parser1.add_argument('-v' ,'--version',         help='Version', action='version', version='(c) 2024 - Version: 4.5.9' )
+	parser1.add_argument('-v' ,'--version',         help='Version', action='version', version='(c) 2025 - Version: 4.5.10' )
 
 	args = parser1.parse_args()
 
