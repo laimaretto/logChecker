@@ -33,7 +33,7 @@ from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_LINE_SPACING
 from docx.shared import Pt
 
-LATEST_VERSION = '4.5.11'
+LATEST_VERSION = '4.5.12'
 
 DATA_VALUE         = 'Value'
 DATA_COMMAND       = '#Command:'
@@ -1197,7 +1197,7 @@ def main():
 	parser1.add_argument('-ic','--idxComp',         type=str, default='no',  choices=['yes','no'], help='Adds new column (Idx Pre/Post) in changes detected table with . Default=no')
 	parser1.add_argument('-ug','--useGen',          type=str, default='yes', choices=['yes','no'], help='Using generic template. If -ug=no, logChecker only use the templates indicated in the -tf and -tf-post folder. Default=yes')
 	parser1.add_argument('-up','--usePlugin',type=str, default='',help="Additional plugins for manipulation of parsed information, creating new sheets. One plugin, use -up plugin1.py . For indicate a folder containing all the plugins: -up plugins/ . Default='' ")
-	parser1.add_argument('-v' ,'--version',         help='Version', action='version', version=f'(c) 2025 - Version: {LASTEST_VERSION}' )
+	parser1.add_argument('-v' ,'--version',         help='Version', action='version', version=f'(c) 2025 - Version: {LATEST_VERSION}' )
 
 	args = parser1.parse_args()
 
