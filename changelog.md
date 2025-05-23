@@ -1,3 +1,10 @@
+# Versions #
+
+[4.5.11 - 2025-05-23]
+- Update of libraries:
+    - `pandas==2.2.2`
+    - `numpy==1.26.4`
+
 [4.5.10 - 2025-02-06]
 - Update `applyPlugin`: to obtain a `dictPlugin`, instead of `df_plg` and `valueKeys_plg`.
 - Update plugin structure. Now, with a dictionary, one plugin can create more than one Excel sheet.
