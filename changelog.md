@@ -1,5 +1,8 @@
 # Versions #
 
+[4.5.12 - 2025-05-23]
+- Typographical error in `LATEST_VERSION`
+
 [4.5.11 - 2025-05-23]
 - Update of libraries:
     - `pandas==2.2.2`
